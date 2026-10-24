@@ -1,4 +1,5 @@
-import { SectionHeading, landingCard } from "./section-heading";
+import { cardClasses } from "@/components/ui/card";
+import { SectionHeading } from "@/components/ui/heading";
 
 const steps = [
   {
@@ -45,7 +46,7 @@ export function HowItWorks() {
           {steps.map((step) => (
             <div
               key={step.number}
-              className={`${landingCard} p-6 transition-transform duration-200 hover:-translate-y-0.5`}
+              className={`${cardClasses} p-6 transition-transform duration-200 hover:-translate-y-0.5`}
             >
               <div className="flex items-center justify-between">
                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-mf-blue text-white shadow-blue">
@@ -54,7 +55,7 @@ export function HowItWorks() {
                 <span className="text-sm font-bold tracking-[0.12em] text-orange">{step.number}</span>
               </div>
               <h3 className="mt-5 text-lg font-bold tracking-tight text-ink">{step.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-alt">{step.description}</p>
+              <p className="mt-2 text-sm leading-6 text-muted">{step.description}</p>
             </div>
           ))}
         </div>

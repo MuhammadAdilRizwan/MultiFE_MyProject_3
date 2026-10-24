@@ -8,11 +8,11 @@ export async function SiteHeader() {
   const profile = await getCurrentProfile(await createClient());
 
   return (
-    <header className="sticky top-0 z-50 border-b border-ink-line bg-white/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-line bg-white/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Logo tone="gradient" />
+        <Logo />
 
-        <nav className="hidden items-center gap-8 text-sm font-semibold text-muted-alt lg:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-8 text-sm font-semibold text-muted lg:flex" aria-label="Primary">
           <Link className="transition-colors hover:text-ocean" href="/#how-it-works">How it works</Link>
           <Link className="transition-colors hover:text-ocean" href="/#brands">Brands</Link>
           <Link className="transition-colors hover:text-ocean" href="/#why-multife">Why MultiFe</Link>
@@ -29,7 +29,7 @@ export async function SiteHeader() {
                   Admin
                 </Link>
               )}
-              <span className="hidden max-w-[10rem] truncate text-sm text-muted-alt md:inline">
+              <span className="hidden max-w-[10rem] truncate text-sm text-muted md:inline">
                 {profile.full_name ?? profile.email}
               </span>
               <SignOutButton />

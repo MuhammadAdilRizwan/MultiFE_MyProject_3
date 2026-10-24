@@ -1,23 +1,23 @@
 @import "tailwindcss";
 
-/* MultiFe final colour scheme (client-approved). */
+/* MultiFe final theme — matched to the client-approved prototype
+   (multi-fe-user-end.vercel.app) as it actually renders. */
 @theme {
-  --color-navy: #14213d;
-  --color-navy-deep: #08243d;
+  --color-ink: #08243d;
+  --color-ink-soft: #1b3654;
 
-  --color-accent: #15a9d6;
+  --color-blue-deep: #06365a;
   --color-ocean: #0e7bc1;
+  --color-cyan-bright: #10b6d9;
+
+  --color-orange: #f26a21;
+  --color-orange-light: #ff8a3d;
+  --color-green: #78be43;
+  --color-cream: #fff8ef;
 
   --color-surface: #ffffff;
-  --color-page: #f8f8f6;
-  --color-ice: #f6fcff;
-  --color-ice-soft: #fcfeff;
-  --color-ice-strong: #eaf8fe;
-  --color-line: #ddebf2;
-
-  --color-muted-strong: #526172;
-  --color-muted: #667889;
-  --color-muted-alt: #65758a;
+  --color-line: rgb(8 36 61 / 0.11);
+  --color-muted: #65758a;
   --color-hint: #94a3ad;
 
   --color-danger: #c94b43;
@@ -25,33 +25,17 @@
   --color-warning: #f26a21;
   --color-warning-soft: #fef2ea;
   --color-success: #5b9832;
-  --color-success-bright: #78be43;
   --color-success-soft: #eff7e9;
-
-  /* Prototype palette (multi-fe-user-end.vercel.app), as it actually renders. */
-  --color-ink: #08243d;
-  --color-ink-soft: #1b3654;
-  --color-blue-deep: #06365a;
-  --color-cyan-bright: #10b6d9;
-  --color-orange: #f26a21;
-  --color-orange-light: #ff8a3d;
-  --color-green: #78be43;
-  --color-cream: #fff8ef;
-  --color-ink-line: rgb(8 36 61 / 0.11);
 
   --shadow-card: 0 14px 34px rgba(16, 35, 63, 0.08);
   --shadow-blue: 0 14px 28px rgba(14, 123, 193, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-cormorant), ui-serif, Georgia, serif;
-
-  --shadow-soft: 0 8px 18px -4px rgba(20, 33, 61, 0.08);
-  --shadow-soft-lg: 0 14px 32px -8px rgba(20, 33, 61, 0.14);
-  --shadow-glow: 0 10px 24px -6px rgba(21, 169, 214, 0.45);
 }
 
 /* Cool top-left → white → warm bottom-right, with cyan/green glows on the cold
-   side and orange/magenta on the warm side. Matches the prototype's app shell. */
+   side and orange/magenta on the warm side. */
 @utility bg-mf-page {
   background:
     radial-gradient(circle at 8% 0%, rgba(16, 182, 217, 0.18), transparent 32%),
@@ -61,17 +45,17 @@
     linear-gradient(135deg, #f8fcff 0%, #ffffff 42%, #fff8ef 100%);
 }
 
-/* Primary / dark surfaces: the prototype renders these as a blue gradient. */
+/* Primary buttons and dark surfaces. */
 @utility bg-mf-blue {
   background-image: linear-gradient(135deg, #06365a 0%, #0e7bc1 58%, #10b6d9 100%);
 }
 
-/* Small highlights and badges render as an orange gradient. */
+/* Small highlights and badges. */
 @utility bg-mf-orange {
   background-image: linear-gradient(135deg, #f26a21, #ff8a3d);
 }
 
-/* The short cyan → orange rule under headings. */
+/* The short cyan → orange rule under headings, progress bars. */
 @utility bg-mf-rule {
   background-image: linear-gradient(90deg, #10b6d9, #f26a21);
 }
@@ -80,14 +64,18 @@ html {
   scroll-behavior: smooth;
 }
 
+body {
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: rgba(19, 181, 216, 0.2);
+  color: var(--color-ink);
+}
+
 /* Edge/IE add their own reveal and clear buttons to inputs; PasswordField has its own toggle. */
 input::-ms-reveal,
 input::-ms-clear {
   display: none;
-}
-
-body {
-  background: var(--color-page);
-  color: var(--color-navy);
-  font-family: var(--font-sans);
 }

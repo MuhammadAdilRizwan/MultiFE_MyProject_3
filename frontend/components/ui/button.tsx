@@ -1,15 +1,14 @@
 import type { ButtonHTMLAttributes } from "react";
 
-type Variant = "primary" | "secondary" | "dark";
+type Variant = "primary" | "secondary";
 
 const variantClasses: Record<Variant, string> = {
-  primary: "bg-accent text-white shadow-glow hover:bg-ocean",
-  secondary: "border border-line bg-surface text-navy hover:border-accent hover:text-ocean",
-  dark: "bg-navy text-white hover:bg-navy-deep",
+  primary: "border border-white/30 bg-mf-blue text-white shadow-blue",
+  secondary: "border border-line bg-white/80 text-ink backdrop-blur hover:border-cyan-bright/60 hover:text-ocean",
 };
 
 export const buttonClasses = (variant: Variant = "primary") =>
-  `inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-base font-semibold transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-60 ${variantClasses[variant]}`;
+  `inline-flex h-12 items-center justify-center gap-2 rounded-full px-7 text-base font-semibold transition-transform duration-200 hover:-translate-y-px active:translate-y-0 active:scale-[0.985] focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-bright/30 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 ${variantClasses[variant]}`;
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;

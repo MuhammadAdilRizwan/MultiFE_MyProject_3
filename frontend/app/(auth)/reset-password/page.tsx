@@ -42,7 +42,7 @@ export default async function ResetPasswordPage() {
       title="Set a new password"
       subtitle={
         <>
-          For <span className="font-medium text-navy">{profile.email}</span>. You&apos;ll be
+          For <span className="font-medium text-ink">{profile.email}</span>. You&apos;ll be
           signed in once it&apos;s saved.
         </>
       }

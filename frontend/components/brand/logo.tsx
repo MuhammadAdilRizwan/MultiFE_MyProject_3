@@ -1,16 +1,9 @@
 import Link from "next/link";
 
-type Tone = "navy" | "gradient";
-
-const markTone: Record<Tone, string> = {
-  navy: "bg-navy",
-  gradient: "bg-mf-blue shadow-blue",
-};
-
-export function LogoMark({ className = "h-9 w-9", tone = "navy" }: { className?: string; tone?: Tone }) {
+export function LogoMark({ className = "h-9 w-9" }: { className?: string }) {
   return (
     <span
-      className={`flex flex-none items-center justify-center rounded-xl text-white ${markTone[tone]} ${className}`}
+      className={`flex flex-none items-center justify-center rounded-xl bg-mf-blue text-white shadow-blue ${className}`}
     >
       <svg viewBox="0 0 24 24" fill="none" className="h-1/2 w-1/2" aria-hidden="true">
         <path d="M12 2.5c1.5 2 1.5 3.7 0 5.5-1.5-1.8-1.5-3.5 0-5.5Z" fill="currentColor" />
@@ -25,15 +18,11 @@ export function LogoMark({ className = "h-9 w-9", tone = "navy" }: { className?:
   );
 }
 
-export function Logo({ tone = "navy" }: { tone?: Tone }) {
+export function Logo() {
   return (
     <Link href="/" className="flex items-center gap-2.5" aria-label="MultiFe home">
-      <LogoMark tone={tone} />
-      <span
-        className={`font-display text-2xl font-semibold tracking-tight ${tone === "gradient" ? "text-ink" : "text-navy"}`}
-      >
-        MultiFe
-      </span>
+      <LogoMark />
+      <span className="font-display text-2xl font-semibold tracking-tight text-ink">MultiFe</span>
     </Link>
   );
 }

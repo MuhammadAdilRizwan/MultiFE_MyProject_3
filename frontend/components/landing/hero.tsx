@@ -1,4 +1,6 @@
-import { Eyebrow, HeadingRule, landingCard, landingPrimaryButton, landingSecondaryButton } from "./section-heading";
+import { buttonClasses } from "@/components/ui/button";
+import { cardClasses } from "@/components/ui/card";
+import { Eyebrow, HeadingRule } from "@/components/ui/heading";
 
 export function Hero() {
   return (
@@ -14,17 +16,17 @@ export function Hero() {
           </h1>
           <HeadingRule align="responsive" />
 
-          <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-muted-alt sm:text-lg lg:mx-0">
+          <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-muted sm:text-lg lg:mx-0">
             Pick a fabric from a brand you trust, customize the style, and let your camera take
             your measurements. Our tailors approve every order before it&apos;s cut — so what
             arrives always fits.
           </p>
 
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
-            <a href="#brands" className={`${landingPrimaryButton} w-full sm:w-auto`}>
+            <a href="#brands" className={`${buttonClasses("primary")} w-full sm:w-auto`}>
               See available brands
             </a>
-            <a href="#how-it-works" className={`${landingSecondaryButton} w-full sm:w-auto`}>
+            <a href="#how-it-works" className={`${buttonClasses("secondary")} w-full sm:w-auto`}>
               How it works
             </a>
           </div>
@@ -46,7 +48,7 @@ function HeroJourneyCard() {
   ];
 
   return (
-    <div className={`${landingCard} p-5 sm:p-6`}>
+    <div className={`${cardClasses} p-5 sm:p-6`}>
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-bold text-ink">How your order moves</span>
         <span className="rounded-full bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">
@@ -65,10 +67,10 @@ function HeroJourneyCard() {
         ))}
       </ul>
 
-      <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-ink-line">
+      <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-line">
         <div className="h-full w-2/3 rounded-full bg-mf-rule" />
       </div>
-      <p className="mt-2 text-xs text-muted-alt">From fabric to your door — no shop visit needed.</p>
+      <p className="mt-2 text-xs text-muted">From fabric to your door — no shop visit needed.</p>
     </div>
   );
 }

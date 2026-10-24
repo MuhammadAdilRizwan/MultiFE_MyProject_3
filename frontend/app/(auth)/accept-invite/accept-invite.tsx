@@ -88,7 +88,7 @@ export function AcceptInvite() {
     return (
       <AuthCard title="Accepting your invite">
         <div className="flex items-center gap-3 text-sm text-muted" role="status">
-          <svg className="h-5 w-5 animate-spin text-accent" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <svg className="h-5 w-5 animate-spin text-cyan-bright" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" opacity="0.25" />
             <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
           </svg>
@@ -112,11 +112,11 @@ export function AcceptInvite() {
       subtitle={
         <>
           You&apos;ve been invited as{" "}
-          <span className="font-medium text-navy">{ROLE_LABELS[state.role]}</span>
+          <span className="font-medium text-ink">{ROLE_LABELS[state.role]}</span>
           {state.email && (
             <>
               {" "}
-              (<span className="font-medium text-navy">{state.email}</span>)
+              (<span className="font-medium text-ink">{state.email}</span>)
             </>
           )}
           . Choose a password to finish setting up your account.

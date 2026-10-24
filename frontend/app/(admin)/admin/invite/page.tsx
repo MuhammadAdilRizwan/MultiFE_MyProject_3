@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { HeadingRule } from "@/components/ui/heading";
 import { createClient } from "@/lib/supabase/server";
 import { InviteForm, type SupplierOption } from "./invite-form";
 
@@ -22,10 +23,11 @@ export default async function InvitePage() {
   return (
     <div>
       <div className="max-w-2xl">
-        <h1 className="font-display text-4xl font-semibold leading-tight text-navy sm:text-5xl">
+        <h1 className="font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
           Invite a team member
         </h1>
-        <p className="mt-3 text-base leading-7 text-muted">
+        <HeadingRule align="left" className="mt-4" />
+        <p className="mt-4 text-base leading-7 text-muted">
           Agents, production staff, supplier contacts and admins can only join by invite. They&apos;ll
           get an email with a link to set their password.
         </p>

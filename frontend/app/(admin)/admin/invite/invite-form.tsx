@@ -4,6 +4,7 @@ import { useState, useTransition, type FormEvent } from "react";
 import { inviteUserAction } from "@/app/(auth)/actions";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { cardClasses } from "@/components/ui/card";
 import { FieldShell, TextField, inputClasses } from "@/components/ui/text-field";
 
 type InviteRole = "agent" | "tailor" | "qc" | "dispatch" | "supplier_contact" | "admin";
@@ -74,10 +75,10 @@ export function InviteForm({ suppliers }: { suppliers: SupplierOption[] }) {
     <form
       onSubmit={onSubmit}
       noValidate
-      className="grid gap-8 rounded-3xl border border-line bg-surface p-5 shadow-soft sm:p-8 lg:grid-cols-[1.15fr_1fr] lg:gap-10"
+      className={`${cardClasses} grid gap-8 p-5 sm:p-8 lg:grid-cols-[1.15fr_1fr] lg:gap-10`}
     >
       <fieldset>
-        <legend className="text-sm font-semibold text-navy">Role</legend>
+        <legend className="text-sm font-semibold text-ink">Role</legend>
         <p className="mt-1 text-sm text-muted">Each role only sees what its job needs.</p>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {ROLES.map((option) => {
@@ -86,7 +87,9 @@ export function InviteForm({ suppliers }: { suppliers: SupplierOption[] }) {
               <label
                 key={option.value}
                 className={`flex cursor-pointer gap-3 rounded-2xl border p-4 transition-colors ${
-                  checked ? "border-accent bg-ice-strong" : "border-line bg-surface hover:border-accent/60"
+                  checked
+                    ? "border-cyan-bright bg-cyan-bright/10 shadow-[0_14px_30px_rgba(16,182,217,0.13)]"
+                    : "border-line bg-white/80 hover:border-cyan-bright/60"
                 }`}
               >
                 <input
@@ -98,10 +101,10 @@ export function InviteForm({ suppliers }: { suppliers: SupplierOption[] }) {
                     setRole(option.value);
                     setErrors({});
                   }}
-                  className="mt-0.5 h-4 w-4 flex-none accent-accent"
+                  className="mt-0.5 h-4 w-4 flex-none accent-ocean"
                 />
                 <span>
-                  <span className="block text-sm font-semibold text-navy">{option.label}</span>
+                  <span className="block text-sm font-semibold text-ink">{option.label}</span>
                   <span className="mt-0.5 block text-xs leading-5 text-muted">{option.description}</span>
                 </span>
               </label>

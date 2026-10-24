@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
 
 export const inputClasses =
-  "block h-12 w-full rounded-xl border border-line bg-surface px-4 text-base text-navy placeholder:text-hint transition-colors focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15 disabled:cursor-not-allowed disabled:bg-ice aria-[invalid=true]:border-danger aria-[invalid=true]:focus:ring-danger/15";
+  "block h-12 w-full rounded-[14px] border border-line bg-white/90 px-4 text-base text-ink shadow-[0_10px_22px_rgba(8,36,61,0.055)] placeholder:text-hint transition-colors focus:border-cyan-bright focus:outline-none focus:ring-4 focus:ring-cyan-bright/20 disabled:cursor-not-allowed disabled:bg-cream aria-[invalid=true]:border-danger aria-[invalid=true]:focus:ring-danger/15";
 
 type FieldShellProps = {
   id: string;
@@ -15,7 +15,7 @@ type FieldShellProps = {
 export function FieldShell({ id, label, error, hint, optional, children }: FieldShellProps) {
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-navy">
+      <label htmlFor={id} className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-ink">
         <span>{label}</span>
         {optional && <span className="text-xs font-normal text-hint">Optional</span>}
       </label>

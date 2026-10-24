@@ -1,4 +1,5 @@
-import { SectionHeading, landingCard } from "./section-heading";
+import { cardClasses } from "@/components/ui/card";
+import { SectionHeading } from "@/components/ui/heading";
 
 const values = [
   {
@@ -45,7 +46,7 @@ export function ValueProps() {
 
         <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {values.map((value) => (
-            <div key={value.title} className={`${landingCard} flex gap-4 p-6`}>
+            <div key={value.title} className={`${cardClasses} flex gap-4 p-6`}>
               <span
                 className={`flex h-11 w-11 flex-none items-center justify-center rounded-2xl ${accentClasses[value.accent]}`}
               >
@@ -53,7 +54,7 @@ export function ValueProps() {
               </span>
               <div>
                 <h3 className="text-base font-bold tracking-tight text-ink">{value.title}</h3>
-                <p className="mt-1.5 text-sm leading-6 text-muted-alt">{value.description}</p>
+                <p className="mt-1.5 text-sm leading-6 text-muted">{value.description}</p>
               </div>
             </div>
           ))}

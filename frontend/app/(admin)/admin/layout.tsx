@@ -13,11 +13,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-line bg-white/70 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <Logo />
-            <span className="hidden rounded-full bg-ice-strong px-2.5 py-1 text-xs font-semibold text-ocean sm:inline">
+            <span className="hidden rounded-full bg-mf-orange px-2.5 py-1 text-xs font-semibold text-white sm:inline">
               Admin
             </span>
           </div>
@@ -31,7 +31,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8" aria-label="Admin">
           <Link
             href="/admin/invite"
-            className="border-b-2 border-accent px-3 py-2.5 text-sm font-semibold text-navy"
+            className="border-b-2 border-cyan-bright px-3 py-2.5 text-sm font-semibold text-ink"
             aria-current="page"
           >
             Invite users

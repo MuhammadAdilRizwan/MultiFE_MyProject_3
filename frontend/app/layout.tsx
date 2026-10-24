@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#14213d",
+  themeColor: "#f8fcff",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -34,7 +34,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${inter.variable} ${cormorant.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-page font-sans text-navy">
+      <body className="relative isolate flex min-h-full flex-col bg-surface font-sans text-ink">
+        {/* Fixed layer rather than background-attachment: fixed, which iOS Safari ignores. */}
+        <div aria-hidden="true" className="bg-mf-page fixed inset-0 -z-10" />
         {children}
       </body>
     </html>

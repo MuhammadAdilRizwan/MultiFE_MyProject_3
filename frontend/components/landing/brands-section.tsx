@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { listActiveBrands } from "@/lib/suppliers";
-import { SectionHeading, landingCard } from "./section-heading";
+import { cardClasses } from "@/components/ui/card";
+import { SectionHeading } from "@/components/ui/heading";
 
 export async function BrandsSection() {
   const brands = await listActiveBrands();
@@ -35,9 +36,9 @@ function BrandCard({ brand }: { brand: { name: string; slug: string; logoUrl: st
   return (
     <Link
       href={`/s/${brand.slug}`}
-      className={`${landingCard} group flex items-center gap-4 p-5 transition-transform duration-200 hover:-translate-y-0.5`}
+      className={`${cardClasses} group flex items-center gap-4 p-5 transition-transform duration-200 hover:-translate-y-0.5`}
     >
-      <span className="flex h-14 w-14 flex-none items-center justify-center overflow-hidden rounded-2xl border border-ink-line bg-white">
+      <span className="flex h-14 w-14 flex-none items-center justify-center overflow-hidden rounded-2xl border border-line bg-white">
         {brand.logoUrl ? (
           <Image src={brand.logoUrl} alt={brand.name} width={56} height={56} className="h-full w-full object-contain" />
         ) : (
@@ -54,7 +55,7 @@ function BrandCard({ brand }: { brand: { name: string; slug: string; logoUrl: st
 
 function EmptyBrandsState() {
   return (
-    <div className="mx-auto flex max-w-xl flex-col items-center rounded-3xl border border-dashed border-ink-line bg-white/70 px-6 py-14 text-center shadow-card backdrop-blur-xl">
+    <div className="mx-auto flex max-w-xl flex-col items-center rounded-3xl border border-dashed border-line bg-white/70 px-6 py-14 text-center shadow-card backdrop-blur-xl">
       <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-mf-blue text-white shadow-blue">
         <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
           <path
@@ -67,7 +68,7 @@ function EmptyBrandsState() {
         </svg>
       </span>
       <h3 className="mt-5 text-lg font-bold tracking-tight text-ink">We&apos;re onboarding our first fabric brands</h3>
-      <p className="mt-2 max-w-sm text-sm leading-6 text-muted-alt">
+      <p className="mt-2 max-w-sm text-sm leading-6 text-muted">
         No brands are live on MultiFe just yet. As soon as a fabric partner joins, their catalogue
         will appear here automatically — check back soon, or ask your MultiFe agent for an update.
       </p>
