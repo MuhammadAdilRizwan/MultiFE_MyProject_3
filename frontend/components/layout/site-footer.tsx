@@ -4,11 +4,12 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-line bg-white/60 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2.5">
-            <LogoMark className="h-8 w-8" />
-            <span className="font-display text-lg text-ink">MultiFe</span>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <div className="flex flex-none items-center gap-3">
+            <LogoMark className="h-11 w-11" />
+            <span className="font-display text-[1.75rem] leading-none text-ink">MultiFe</span>
           </div>
+          <span aria-hidden="true" className="hidden h-10 w-px bg-line sm:block" />
           <p className="max-w-md text-sm leading-6 text-muted">
             Fabric to finished garment, made to your measurements — stitched in our own workshop
             and delivered to your door.

@@ -13,9 +13,9 @@ export async function SiteHeader() {
         <Logo />
 
         <nav className="hidden items-center gap-8 text-sm font-semibold text-muted lg:flex" aria-label="Primary">
+          <Link className="transition-colors hover:text-ocean" href="/#why-multife">Why MultiFe</Link>
           <Link className="transition-colors hover:text-ocean" href="/#how-it-works">How it works</Link>
           <Link className="transition-colors hover:text-ocean" href="/#brands">Brands</Link>
-          <Link className="transition-colors hover:text-ocean" href="/#why-multife">Why MultiFe</Link>
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">

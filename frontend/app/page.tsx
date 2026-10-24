@@ -11,8 +11,8 @@ export default function Home() {
       <SiteHeader />
       <main className="flex-1">
         <Hero />
-        <HowItWorks />
         <ValueProps />
+        <HowItWorks />
         <BrandsSection />
       </main>
       <SiteFooter />
