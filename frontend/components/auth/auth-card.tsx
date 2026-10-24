@@ -17,7 +17,7 @@ export function AuthCard({
   return (
     <div>
       <div className={`${cardClasses} p-6 sm:p-8`}>
-        <h1 className="font-display text-4xl font-semibold leading-tight text-ink">{title}</h1>
+        <h1 className="font-display text-3xl leading-tight text-ink">{title}</h1>
         <HeadingRule align="left" className="mt-3" />
         {subtitle && <p className="mt-4 text-base leading-7 text-muted">{subtitle}</p>}
         <div className="mt-7">{children}</div>

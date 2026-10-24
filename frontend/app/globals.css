@@ -30,8 +30,8 @@
   --shadow-card: 0 14px 34px rgba(16, 35, 63, 0.08);
   --shadow-blue: 0 14px 28px rgba(14, 123, 193, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-cormorant), ui-serif, Georgia, serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-dm-serif), ui-serif, Georgia, serif;
 }
 
 /* Cool top-left → white → warm bottom-right, with cyan/green glows on the cold
@@ -67,6 +67,7 @@ html {
 body {
   color: var(--color-ink);
   font-family: var(--font-sans);
+  letter-spacing: -0.01em;
 }
 
 ::selection {

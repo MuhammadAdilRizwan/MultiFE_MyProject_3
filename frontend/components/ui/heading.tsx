@@ -46,7 +46,7 @@ export function SectionHeading({
   return (
     <div className="mx-auto max-w-2xl text-center">
       <Eyebrow>{eyebrow}</Eyebrow>
-      <h2 className="mt-4 text-balance font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
+      <h2 className="mt-4 text-balance font-display text-3xl leading-tight text-ink sm:text-4xl">
         {title}
       </h2>
       <HeadingRule />

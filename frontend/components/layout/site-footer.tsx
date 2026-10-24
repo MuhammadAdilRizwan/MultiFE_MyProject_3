@@ -7,7 +7,7 @@ export function SiteFooter() {
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5">
             <LogoMark className="h-8 w-8" />
-            <span className="font-display text-xl font-semibold text-ink">MultiFe</span>
+            <span className="font-display text-lg text-ink">MultiFe</span>
           </div>
           <p className="max-w-md text-sm leading-6 text-muted">
             Fabric to finished garment, made to your measurements — stitched in our own workshop

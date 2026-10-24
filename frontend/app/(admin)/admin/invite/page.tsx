@@ -23,7 +23,7 @@ export default async function InvitePage() {
   return (
     <div>
       <div className="max-w-2xl">
-        <h1 className="font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
+        <h1 className="font-display text-3xl leading-tight text-ink sm:text-4xl">
           Invite a team member
         </h1>
         <HeadingRule align="left" className="mt-4" />

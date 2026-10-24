@@ -22,7 +22,7 @@ export function Logo() {
   return (
     <Link href="/" className="flex items-center gap-2.5" aria-label="MultiFe home">
       <LogoMark />
-      <span className="font-display text-2xl font-semibold tracking-tight text-ink">MultiFe</span>
+      <span className="font-display text-[1.4rem] text-ink">MultiFe</span>
     </Link>
   );
 }

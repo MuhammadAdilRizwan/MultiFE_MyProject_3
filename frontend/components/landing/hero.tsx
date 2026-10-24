@@ -9,7 +9,7 @@ export function Hero() {
         <div className="text-center lg:text-left">
           <Eyebrow align="responsive">Made-to-measure, made simple</Eyebrow>
 
-          <h1 className="mt-6 text-balance font-display text-5xl font-semibold leading-[1.02] text-ink sm:text-6xl lg:text-7xl">
+          <h1 className="mt-6 text-balance font-display text-[2.6rem] leading-[1.06] text-ink sm:text-5xl lg:text-6xl">
             Your perfect fit,
             <br />
             stitched and delivered.

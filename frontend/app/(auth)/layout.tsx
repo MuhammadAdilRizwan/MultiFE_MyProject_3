@@ -16,7 +16,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         <div className="max-w-md">
           <Eyebrow align="left">Made-to-measure</Eyebrow>
-          <h2 className="mt-5 font-display text-5xl font-semibold leading-[1.05] text-ink xl:text-6xl">
+          <h2 className="mt-5 font-display text-4xl leading-[1.08] text-ink xl:text-5xl">
             Clothing made to your measure.
           </h2>
           <HeadingRule align="left" className="mt-5" />

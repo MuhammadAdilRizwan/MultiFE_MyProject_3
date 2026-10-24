@@ -42,7 +42,7 @@ function BrandCard({ brand }: { brand: { name: string; slug: string; logoUrl: st
         {brand.logoUrl ? (
           <Image src={brand.logoUrl} alt={brand.name} width={56} height={56} className="h-full w-full object-contain" />
         ) : (
-          <span className="font-display text-2xl font-semibold text-ink">{brand.name.charAt(0)}</span>
+          <span className="font-display text-2xl text-ink">{brand.name.charAt(0)}</span>
         )}
       </span>
       <div className="min-w-0">
