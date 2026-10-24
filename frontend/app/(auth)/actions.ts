@@ -160,7 +160,11 @@ export async function inviteUserAction(
     }
 
     const adminClient = createAdminClient();
-    const redirectTo = authCallbackUrl();
+    // Admin-sent invites can't use PKCE (no code verifier in the invitee's
+    // browser), so the link returns tokens in the URL hash. /auth/callback is
+    // server-side and never sees a hash, so the invite goes straight to the
+    // client page that reads it.
+    const redirectTo = new URL("/accept-invite", SITE_URL).toString();
 
     const result =
       role === "admin"

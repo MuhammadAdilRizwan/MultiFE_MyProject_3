@@ -1,26 +1,53 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* MultiFe final colour scheme (client-approved). */
+@theme {
+  --color-navy: #14213d;
+  --color-navy-deep: #08243d;
+
+  --color-accent: #15a9d6;
+  --color-ocean: #0e7bc1;
+
+  --color-surface: #ffffff;
+  --color-page: #f8f8f6;
+  --color-ice: #f6fcff;
+  --color-ice-soft: #fcfeff;
+  --color-ice-strong: #eaf8fe;
+  --color-line: #ddebf2;
+
+  --color-muted-strong: #526172;
+  --color-muted: #667889;
+  --color-muted-alt: #65758a;
+  --color-hint: #94a3ad;
+
+  --color-danger: #c94b43;
+  --color-danger-soft: #fbeeed;
+  --color-warning: #f26a21;
+  --color-warning-soft: #fef2ea;
+  --color-success: #5b9832;
+  --color-success-bright: #78be43;
+  --color-success-soft: #eff7e9;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-cormorant), ui-serif, Georgia, serif;
+
+  --shadow-soft: 0 8px 18px -4px rgba(20, 33, 61, 0.08);
+  --shadow-soft-lg: 0 14px 32px -8px rgba(20, 33, 61, 0.14);
+  --shadow-glow: 0 10px 24px -6px rgba(21, 169, 214, 0.45);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html {
+  scroll-behavior: smooth;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Edge/IE add their own reveal and clear buttons to inputs; PasswordField has its own toggle. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-page);
+  color: var(--color-navy);
+  font-family: var(--font-sans);
 }
