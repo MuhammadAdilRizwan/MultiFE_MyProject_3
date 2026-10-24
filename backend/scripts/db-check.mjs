@@ -31,10 +31,10 @@ const check = async (label, fn) => {
 
 // Public (anon) key: what a guest on the storefront can see, with RLS applied.
 const anon = createClient(url, anonKey, { auth: { persistSession: false } });
-await check("anon key reads categories", async () => {
-  const { data, error } = await anon.from("categories").select("name");
+await check("anon key reads published dress templates", async () => {
+  const { data, error } = await anon.from("dress_templates").select("name");
   if (error) throw error;
-  return `${data.length} categories`;
+  return `${data.length} templates`;
 });
 await check("RLS hides orders from guests", async () => {
   const { data, error } = await anon.from("orders").select("id");
@@ -46,7 +46,7 @@ await check("RLS hides orders from guests", async () => {
 // Service-role key: server-only access, bypasses RLS.
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 await check("service key reads tables", async () => {
-  const tables = ["profiles", "shops", "products", "orders", "notification_templates"];
+  const tables = ["profiles", "suppliers", "fabrics", "dress_templates", "orders", "notification_templates"];
   const counts = [];
   for (const t of tables) {
     const { count, error } = await admin.from(t).select("*", { count: "exact", head: true });

@@ -7,6 +7,8 @@
     "build": "npm run build -w frontend",
     "lint": "npm run lint -w frontend",
     "db:setup": "npm run db:setup -w @multife/backend --",
-    "db:check": "npm run db:check -w @multife/backend"
+    "db:check": "npm run db:check -w @multife/backend",
+    "create-admin": "npm run create-admin -w @multife/backend --",
+    "test:auth": "npm run test:auth -w @multife/backend"
   }
 }

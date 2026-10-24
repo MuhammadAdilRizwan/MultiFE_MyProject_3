@@ -66,7 +66,7 @@ async function main() {
 
   if (process.argv.includes("--no-seed")) return;
 
-  const { rows: seeded } = await client.query("select count(*)::int as n from public.measurement_templates");
+  const { rows: seeded } = await client.query("select count(*)::int as n from public.dress_templates");
   if (seeded[0].n > 0) {
     console.log("✓ seed.sql (data already present, skipped)");
     return;
