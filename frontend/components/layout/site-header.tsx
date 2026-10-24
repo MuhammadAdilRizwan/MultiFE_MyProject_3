@@ -8,11 +8,11 @@ export async function SiteHeader() {
   const profile = await getCurrentProfile(await createClient());
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-surface/95 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-ink-line bg-white/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Logo />
+        <Logo tone="gradient" />
 
-        <nav className="hidden items-center gap-8 text-sm font-medium text-muted-strong lg:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-8 text-sm font-semibold text-muted-alt lg:flex" aria-label="Primary">
           <Link className="transition-colors hover:text-ocean" href="/#how-it-works">How it works</Link>
           <Link className="transition-colors hover:text-ocean" href="/#brands">Brands</Link>
           <Link className="transition-colors hover:text-ocean" href="/#why-multife">Why MultiFe</Link>
@@ -29,7 +29,7 @@ export async function SiteHeader() {
                   Admin
                 </Link>
               )}
-              <span className="hidden max-w-[10rem] truncate text-sm text-muted md:inline">
+              <span className="hidden max-w-[10rem] truncate text-sm text-muted-alt md:inline">
                 {profile.full_name ?? profile.email}
               </span>
               <SignOutButton />
@@ -38,13 +38,13 @@ export async function SiteHeader() {
             <>
               <Link
                 href="/sign-in"
-                className="inline-flex h-11 items-center rounded-full px-3 text-sm font-semibold text-navy transition-colors hover:text-ocean"
+                className="inline-flex h-11 items-center rounded-full px-3 text-sm font-semibold text-ink transition-colors hover:text-ocean"
               >
                 Sign in
               </Link>
               <Link
                 href="/#brands"
-                className="hidden h-11 items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-glow transition-colors hover:bg-ocean sm:inline-flex"
+                className="hidden h-11 items-center justify-center rounded-full border border-white/30 bg-mf-blue px-5 text-sm font-semibold text-white shadow-blue transition-transform duration-200 hover:-translate-y-px sm:inline-flex"
               >
                 Get started
               </Link>

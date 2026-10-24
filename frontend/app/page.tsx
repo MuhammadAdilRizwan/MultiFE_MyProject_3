@@ -7,7 +7,9 @@ import { BrandsSection } from "@/components/landing/brands-section";
 
 export default function Home() {
   return (
-    <div className="flex min-h-full flex-1 flex-col">
+    <div className="relative isolate flex min-h-full flex-1 flex-col text-ink">
+      {/* Fixed layer rather than background-attachment: fixed, which iOS Safari ignores. */}
+      <div aria-hidden="true" className="bg-mf-page fixed inset-0 -z-10" />
       <SiteHeader />
       <main className="flex-1">
         <Hero />

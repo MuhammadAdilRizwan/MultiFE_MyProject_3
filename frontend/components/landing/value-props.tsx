@@ -1,3 +1,5 @@
+import { SectionHeading, landingCard } from "./section-heading";
+
 const values = [
   {
     title: "Made to your measurements",
@@ -30,42 +32,28 @@ const values = [
 ];
 
 const accentClasses: Record<string, string> = {
-  cyan: "bg-accent/10 text-ocean",
-  orange: "bg-warning/10 text-warning",
-  green: "bg-success/10 text-success",
+  cyan: "bg-cyan-bright/12 text-ocean",
+  orange: "bg-orange/12 text-orange",
+  green: "bg-green/15 text-success",
 };
 
 export function ValueProps() {
   return (
-    <section id="why-multife" className="bg-ice-strong py-20 sm:py-24">
+    <section id="why-multife" className="scroll-mt-20 py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-wide text-ocean">
-            Why MultiFe
-          </span>
-          <h2 className="mt-3 font-display text-4xl font-semibold leading-tight text-navy sm:text-5xl">
-            Precision tailoring, without the fitting room
-          </h2>
-        </div>
+        <SectionHeading eyebrow="Why MultiFe" title="Precision tailoring, without the fitting room" />
 
         <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {values.map((value) => (
-            <div
-              key={value.title}
-              className="flex gap-4 rounded-2xl bg-surface p-6 shadow-soft"
-            >
+            <div key={value.title} className={`${landingCard} flex gap-4 p-6`}>
               <span
-                className={`flex h-11 w-11 flex-none items-center justify-center rounded-xl ${accentClasses[value.accent]}`}
+                className={`flex h-11 w-11 flex-none items-center justify-center rounded-2xl ${accentClasses[value.accent]}`}
               >
                 {value.icon}
               </span>
               <div>
-                <h3 className="text-base font-semibold text-navy">
-                  {value.title}
-                </h3>
-                <p className="mt-1.5 text-sm leading-6 text-muted">
-                  {value.description}
-                </p>
+                <h3 className="text-base font-bold tracking-tight text-ink">{value.title}</h3>
+                <p className="mt-1.5 text-sm leading-6 text-muted-alt">{value.description}</p>
               </div>
             </div>
           ))}

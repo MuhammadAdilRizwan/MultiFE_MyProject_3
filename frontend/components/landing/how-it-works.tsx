@@ -1,3 +1,5 @@
+import { SectionHeading, landingCard } from "./section-heading";
+
 const steps = [
   {
     number: "01",
@@ -31,38 +33,28 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="bg-surface py-20 sm:py-24">
+    <section id="how-it-works" className="scroll-mt-20 py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-wide text-ocean">
-            How it works
-          </span>
-          <h2 className="mt-3 font-display text-4xl font-semibold leading-tight text-navy sm:text-5xl">
-            From fabric to your doorstep
-          </h2>
-          <p className="mt-4 text-base leading-7 text-muted">
-            One guided journey, four steps. No measuring tape, no shop visit.
-          </p>
-        </div>
+        <SectionHeading
+          eyebrow="How it works"
+          title="From fabric to your doorstep"
+          description="One guided journey, four steps. No measuring tape, no shop visit."
+        />
 
         <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((step) => (
             <div
               key={step.number}
-              className="group relative rounded-2xl border border-line bg-ice p-6 transition-shadow hover:shadow-soft"
+              className={`${landingCard} p-6 transition-transform duration-200 hover:-translate-y-0.5`}
             >
-              <span className="text-xs font-bold tracking-widest text-hint">
-                {step.number}
-              </span>
-              <span className="mt-4 flex h-11 w-11 items-center justify-center rounded-xl bg-navy text-accent">
-                {step.icon}
-              </span>
-              <h3 className="mt-4 text-lg font-semibold text-navy">
-                {step.title}
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                {step.description}
-              </p>
+              <div className="flex items-center justify-between">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-mf-blue text-white shadow-blue">
+                  {step.icon}
+                </span>
+                <span className="text-sm font-bold tracking-[0.12em] text-orange">{step.number}</span>
+              </div>
+              <h3 className="mt-5 text-lg font-bold tracking-tight text-ink">{step.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-alt">{step.description}</p>
             </div>
           ))}
         </div>
