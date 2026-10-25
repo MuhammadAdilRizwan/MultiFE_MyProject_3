@@ -7,13 +7,17 @@
     "db:setup": "node scripts/db-setup.mjs",
     "db:check": "node scripts/db-check.mjs",
     "create-admin": "node scripts/create-admin.mjs",
-    "test:auth": "node tests/auth.mjs"
+    "seed:catalog": "node scripts/seed-catalog-fixtures.mjs",
+    "test:auth": "node tests/auth.mjs",
+    "test": "vitest run",
+    "test:rls": "vitest run --config vitest.rls.config.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"
   },
   "devDependencies": {
     "dotenv": "^16.4.5",
-    "pg": "^8.12.0"
+    "pg": "^8.12.0",
+    "vitest": "^5.0.5"
   }
 }
