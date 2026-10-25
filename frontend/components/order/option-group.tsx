@@ -23,6 +23,7 @@ export function OptionGroup({
   onChange: (optionId: string) => void;
 }) {
   const headingId = `group-${group.id}`;
+  const textOnly = group.options.every((o) => !o.image);
 
   // Arrow keys move the selection within the group, like a native radio group.
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -55,6 +56,7 @@ export function OptionGroup({
             key={o.id}
             label={o.label}
             image={o.image}
+            textOnly={textOnly}
             selected={o.id === value}
             onSelect={() => onChange(o.id)}
           />

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LogoMark } from "@/components/brand/logo";
 
 export function SiteFooter() {
@@ -15,8 +16,11 @@ export function SiteFooter() {
             and delivered to your door.
           </p>
         </div>
-        <div className="mt-8 border-t border-line pt-6">
+        <div className="mt-8 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-hint">© {new Date().getFullYear()} MultiFe. All rights reserved.</p>
+          <Link href="/register-brand" className="text-sm font-semibold text-ocean hover:underline">
+            Register your brand
+          </Link>
         </div>
       </div>
     </footer>

@@ -1,14 +1,14 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { Logo } from "@/components/brand/logo";
+import { AdminNav } from "@/components/admin/admin-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile(await createClient());
 
-  if (!profile) redirect("/sign-in?next=/admin/invite");
+  if (!profile) redirect("/sign-in?next=/admin");
   if (profile.role !== "admin" || profile.status !== "active") redirect("/");
 
   return (
@@ -28,15 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <SignOutButton />
           </div>
         </div>
-        <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8" aria-label="Admin">
-          <Link
-            href="/admin/invite"
-            className="border-b-2 border-cyan-bright px-3 py-2.5 text-sm font-semibold text-ink"
-            aria-current="page"
-          >
-            Invite users
-          </Link>
-        </nav>
+        <AdminNav />
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         {children}

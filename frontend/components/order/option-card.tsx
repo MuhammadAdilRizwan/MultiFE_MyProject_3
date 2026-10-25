@@ -18,25 +18,37 @@ export function optionCardClasses(selected: boolean) {
   }`;
 }
 
+// `image` is null for a value with no picture yet. In a group where no value
+// has one (`textOnly`), cards drop the picture area altogether.
 export function OptionCard({
   label,
   image,
   selected,
   onSelect,
+  textOnly = false,
   sizes = "(min-width: 1024px) 160px, (min-width: 640px) 22vw, 30vw",
 }: {
   label: string;
-  image: string;
+  image: string | null;
   selected: boolean;
   onSelect: () => void;
+  textOnly?: boolean;
   sizes?: string;
 }) {
   return (
     <button type="button" role="radio" aria-checked={selected} onClick={onSelect} className={optionCardClasses(selected)}>
       {selected && <SelectedBadge />}
-      <span className="relative block aspect-square w-full bg-cream">
-        <Image src={image} alt="" fill sizes={sizes} className="object-cover" />
-      </span>
+      {!textOnly && (
+        <span className="relative flex aspect-square w-full items-center justify-center bg-cream">
+          {image ? (
+            <Image src={image} alt="" fill sizes={sizes} className="object-cover" />
+          ) : (
+            <span aria-hidden="true" className="font-display text-3xl text-hint">
+              {label.charAt(0)}
+            </span>
+          )}
+        </span>
+      )}
       <span className="flex min-h-[3rem] items-center justify-center px-2 py-2 text-center text-xs font-bold leading-tight text-ink sm:text-sm">
         {label}
       </span>

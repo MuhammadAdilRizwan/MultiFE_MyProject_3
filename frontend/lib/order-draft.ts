@@ -6,15 +6,19 @@ import type { Selections } from "./customization";
 // The order in progress, kept in sessionStorage so a refresh or a dropped
 // connection doesn't lose the customer's choices (FR-CUS-13). Replaced by a
 // server-side order_drafts row once the ordering backend exists.
+// selections are { option_group key: option_value key }; labels keep the
+// "Group: Value" text of each choice so a choice the store later stops
+// offering can still be named in the warning.
 export type Draft = {
   brandSlug: string | null;
   fabricId: string | null;
   templateId: string | null;
   selections: Selections;
+  labels: Record<string, string>;
 };
 
 const KEY = "multife:order-draft";
-const EMPTY: Draft = { brandSlug: null, fabricId: null, templateId: null, selections: {} };
+const EMPTY: Draft = { brandSlug: null, fabricId: null, templateId: null, selections: {}, labels: {} };
 
 let current: Draft = EMPTY;
 let loaded = false;
@@ -46,9 +50,25 @@ export function updateDraft(patch: Partial<Draft>) {
   write({ ...current, ...patch });
 }
 
-export function setSelections(patch: Selections) {
+export function setSelections(patch: Selections, labels: Record<string, string>) {
   load();
-  write({ ...current, selections: { ...current.selections, ...patch } });
+  write({
+    ...current,
+    selections: { ...current.selections, ...patch },
+    labels: { ...current.labels, ...labels },
+  });
+}
+
+// For choices whose whole group is no longer offered.
+export function dropSelections(groupKeys: string[]) {
+  load();
+  const selections = { ...current.selections };
+  const labels = { ...current.labels };
+  for (const key of groupKeys) {
+    delete selections[key];
+    delete labels[key];
+  }
+  write({ ...current, selections, labels });
 }
 
 // Starting a different fabric or store resets downstream choices.

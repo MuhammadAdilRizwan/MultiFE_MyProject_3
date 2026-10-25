@@ -1,16 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { getOrderContextAction, type OrderContextData } from "@/app/(storefront)/catalog-actions";
 import { buttonClasses } from "@/components/ui/button";
-import { getBrand, getFabric, getTemplate, type Brand, type Fabric, type Template } from "@/lib/catalog";
+import { buildSteps, type Step } from "@/lib/customization";
 import { useDraft, type Draft } from "@/lib/order-draft";
 import { OrderTopBar } from "./order-top-bar";
 
-export type OrderContext = { draft: Draft; brand: Brand; fabric: Fabric; template: Template | null };
+export type OrderContext = Omit<OrderContextData, "options"> & { draft: Draft; steps: Step[] };
 
-// Renders children only once the saved order has been read and has what this
-// page needs; otherwise a loading state or a way back to the start.
+type Loaded = { key: string; result: Awaited<ReturnType<typeof getOrderContextAction>> };
+
+// Moving between customize steps shouldn't refetch the same order; a full
+// reload reads fresh again.
+const cache = new Map<string, Loaded["result"]>();
+
+// Renders children only once the saved order has been read and checked
+// against the live catalogue; otherwise a loading state or a way back to the start.
 export function OrderGate({
   needTemplate = false,
   children,
@@ -19,8 +26,31 @@ export function OrderGate({
   children: (ctx: OrderContext) => ReactNode;
 }) {
   const draft = useDraft();
+  const key = draft?.brandSlug && draft.fabricId ? `${draft.brandSlug}|${draft.fabricId}|${draft.templateId ?? ""}` : null;
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const brandSlug = draft?.brandSlug;
+  const fabricId = draft?.fabricId;
+  const templateId = draft?.templateId ?? null;
 
-  if (!draft) {
+  useEffect(() => {
+    if (!key || !brandSlug || !fabricId || cache.has(key)) return;
+    let cancelled = false;
+    getOrderContextAction({ brandSlug, fabricId, templateId })
+      .then((result) => {
+        if (result.ok) cache.set(key, result);
+        if (!cancelled) setLoaded({ key, result });
+      })
+      .catch(() => {
+        if (!cancelled) setLoaded({ key, result: { ok: false, error: "Could not load your order." } });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [key, brandSlug, fabricId, templateId]);
+
+  if (draft && !key) return <StartAgain />;
+  const result = (key && cache.get(key)) || (loaded?.key === key ? loaded.result : null);
+  if (!draft || !result) {
     return (
       <div className="flex min-h-full flex-1 items-center justify-center" role="status" aria-label="Loading your order">
         <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-line border-t-cyan-bright" />
@@ -28,31 +58,36 @@ export function OrderGate({
     );
   }
 
-  const brand = draft.brandSlug ? getBrand(draft.brandSlug) : undefined;
-  const fabric = draft.fabricId ? getFabric(draft.fabricId) : undefined;
-  const template = draft.templateId ? getTemplate(draft.templateId) ?? null : null;
+  if (!result.ok) {
+    return result.error === "Template not found." ? <ChooseTemplate /> : <StartAgain />;
+  }
+  if (needTemplate && !result.data.template) return <ChooseTemplate />;
 
-  if (!brand || !fabric) {
-    return (
-      <Missing
-        title="Start by choosing a fabric"
-        text="Pick a brand and a fabric first — your style choices are built on top of it."
-        href="/#brands"
-        action="Browse brands"
-      />
-    );
-  }
-  if (needTemplate && !template) {
-    return (
-      <Missing
-        title="Choose a template first"
-        text="Select the outfit you'd like to customize, then continue from there."
-        href="/order/template"
-        action="Choose a template"
-      />
-    );
-  }
-  return <>{children({ draft, brand, fabric, template })}</>;
+  const { options, ...data } = result.data;
+  const steps = buildSteps(options, data.template?.recommended_options ?? {});
+  return <>{children({ ...data, draft, steps })}</>;
+}
+
+function StartAgain() {
+  return (
+    <Missing
+      title="Start by choosing a fabric"
+      text="Pick a brand and a fabric first — your style choices are built on top of it."
+      href="/#brands"
+      action="Browse brands"
+    />
+  );
+}
+
+function ChooseTemplate() {
+  return (
+    <Missing
+      title="Choose a template first"
+      text="Select the outfit you'd like to customize, then continue from there."
+      href="/order/template"
+      action="Choose a template"
+    />
+  );
 }
 
 function Missing({ title, text, href, action }: { title: string; text: string; href: string; action: string }) {

@@ -7,6 +7,7 @@ import { createSupplier } from "@multife/backend/modules/catalog/createSupplier"
 import { createTemplate } from "@multife/backend/modules/catalog/createTemplate";
 import { createTemplateOption } from "@multife/backend/modules/catalog/createTemplateOption";
 import { setFabricAvailability } from "@multife/backend/modules/catalog/setFabricAvailability";
+import { setFabricSupportedOptions } from "@multife/backend/modules/catalog/setFabricSupportedOptions";
 import { setSupplierStatus } from "@multife/backend/modules/catalog/setSupplierStatus";
 import { setTemplatePublished } from "@multife/backend/modules/catalog/setTemplatePublished";
 import { updateTemplate } from "@multife/backend/modules/catalog/updateTemplate";
@@ -252,6 +253,45 @@ export async function setFabricAvailabilityAction(
     if (denied) return denied;
 
     await setFabricAvailability(supabase, parsed.data.fabricId, parsed.data.isAvailable);
+    return ok(null);
+  } catch (error) {
+    return fail(describeError(error));
+  }
+}
+
+const setFabricSupportedOptionsSchema = z.object({
+  fabricId: z.string().uuid(),
+  supportedOptions: z.record(z.string().min(1), z.array(z.string().min(1))),
+});
+
+// Admin verification of a fabric's customizations: picks from our own option
+// vocabulary, so every key must exist there — checked against the database,
+// never trusted from the browser.
+export async function setFabricSupportedOptionsAction(
+  input: z.infer<typeof setFabricSupportedOptionsSchema>,
+): Promise<ActionResult<null>> {
+  const parsed = setFabricSupportedOptionsSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input.");
+
+  try {
+    const supabase = await createClient();
+    const denied = await ensureAdmin(supabase);
+    if (denied) return denied;
+
+    const { data: values, error } = await supabase.from("option_values").select("key, option_groups(key)");
+    if (error) throw error;
+    const known = new Set(
+      ((values ?? []) as unknown as { key: string; option_groups: { key: string } | null }[]).map(
+        (v) => `${v.option_groups?.key}|${v.key}`,
+      ),
+    );
+    for (const [groupKey, valueKeys] of Object.entries(parsed.data.supportedOptions)) {
+      if (valueKeys.some((valueKey) => !known.has(`${groupKey}|${valueKey}`))) {
+        return fail("Some selected options are not in the customization list.");
+      }
+    }
+
+    await setFabricSupportedOptions(supabase, parsed.data.fabricId, parsed.data.supportedOptions);
     return ok(null);
   } catch (error) {
     return fail(describeError(error));

@@ -11,6 +11,7 @@ vi.mock("@multife/backend/modules/catalog/createOptionGroup", () => ({ createOpt
 vi.mock("@multife/backend/modules/catalog/createOptionValue", () => ({ createOptionValue: vi.fn() }));
 vi.mock("@multife/backend/modules/catalog/createTemplateOption", () => ({ createTemplateOption: vi.fn() }));
 vi.mock("@multife/backend/modules/catalog/setFabricAvailability", () => ({ setFabricAvailability: vi.fn() }));
+vi.mock("@multife/backend/modules/catalog/setFabricSupportedOptions", () => ({ setFabricSupportedOptions: vi.fn() }));
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
@@ -23,6 +24,7 @@ import { createOptionGroup } from "@multife/backend/modules/catalog/createOption
 import { createOptionValue } from "@multife/backend/modules/catalog/createOptionValue";
 import { createTemplateOption } from "@multife/backend/modules/catalog/createTemplateOption";
 import { setFabricAvailability } from "@multife/backend/modules/catalog/setFabricAvailability";
+import { setFabricSupportedOptions } from "@multife/backend/modules/catalog/setFabricSupportedOptions";
 import {
   createOptionGroupAction,
   createOptionValueAction,
@@ -30,6 +32,7 @@ import {
   createTemplateAction,
   createTemplateOptionAction,
   setFabricAvailabilityAction,
+  setFabricSupportedOptionsAction,
   setSupplierStatusAction,
   setTemplatePublishedAction,
   updateTemplateAction,
@@ -203,5 +206,57 @@ describe("setFabricAvailabilityAction", () => {
     const result = await setFabricAvailabilityAction({ fabricId: "123e4567-e89b-12d3-a456-426614174000", isAvailable: true });
 
     expect(result).toEqual({ ok: false, error: "no supported options" });
+  });
+});
+
+describe("setFabricSupportedOptionsAction", () => {
+  const fabricId = "123e4567-e89b-12d3-a456-426614174000";
+  const vocabulary = [
+    { key: "round", option_groups: { key: "neckline" } },
+    { key: "v-neck", option_groups: { key: "neckline" } },
+    { key: "full", option_groups: { key: "sleeve" } },
+  ];
+
+  beforeEach(() => {
+    vi.mocked(createClient).mockResolvedValue({
+      from: () => ({ select: () => Promise.resolve({ data: vocabulary, error: null }) }),
+    } as never);
+  });
+
+  it("rejects a non-admin", async () => {
+    vi.mocked(getCurrentProfile).mockResolvedValue({ ...activeAdmin, role: "supplier_contact" });
+
+    const result = await setFabricSupportedOptionsAction({ fabricId, supportedOptions: { neckline: ["round"] } });
+
+    expect(result.ok).toBe(false);
+    expect(setFabricSupportedOptions).not.toHaveBeenCalled();
+  });
+
+  it("rejects options that aren't in the customization list", async () => {
+    const result = await setFabricSupportedOptionsAction({ fabricId, supportedOptions: { neckline: ["round", "halter"] } });
+
+    expect(result).toEqual({ ok: false, error: "Some selected options are not in the customization list." });
+    expect(setFabricSupportedOptions).not.toHaveBeenCalled();
+  });
+
+  it("rejects a known value filed under the wrong group", async () => {
+    const result = await setFabricSupportedOptionsAction({ fabricId, supportedOptions: { sleeve: ["round"] } });
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("saves verified options", async () => {
+    vi.mocked(setFabricSupportedOptions).mockResolvedValue(undefined);
+
+    const result = await setFabricSupportedOptionsAction({
+      fabricId,
+      supportedOptions: { neckline: ["round", "v-neck"], sleeve: ["full"] },
+    });
+
+    expect(result).toEqual({ ok: true, data: null });
+    expect(setFabricSupportedOptions).toHaveBeenCalledWith(expect.anything(), fabricId, {
+      neckline: ["round", "v-neck"],
+      sleeve: ["full"],
+    });
   });
 });

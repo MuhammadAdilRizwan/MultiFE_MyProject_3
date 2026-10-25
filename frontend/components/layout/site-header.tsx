@@ -23,7 +23,7 @@ export async function SiteHeader() {
             <>
               {profile.role === "admin" && (
                 <Link
-                  href="/admin/invite"
+                  href="/admin"
                   className="hidden h-11 items-center rounded-full px-3 text-sm font-semibold text-ocean hover:underline sm:inline-flex"
                 >
                   Admin

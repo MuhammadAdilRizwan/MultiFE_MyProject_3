@@ -1,8 +1,16 @@
+import type { EvaluatedOptionGroup } from "@multife/backend/modules/rules/types";
+
 // The 15 customization steps, transcribed from the client-approved prototype
 // (multi-fe-user-end.vercel.app): same groups, options, defaults and order.
 // Images live in /public/customize, named "<file prefix>-<option>".
+//
+// This is only the layout — which step each option group sits in, and the
+// picture for each value. What a customer can actually pick comes from the
+// database (the template's options the fabric supports, verified by an
+// admin); buildSteps() fits that into this layout. Group ids and option ids
+// here are the option_groups.key / option_values.key they match.
 
-export type Option = { id: string; label: string; image: string };
+export type Option = { id: string; label: string; image: string | null };
 
 export type Group = {
   id: string;
@@ -36,7 +44,7 @@ function group(id: string, title: string, prefix: string, raw: Raw[], defaultLab
   return { id, title, options, defaultId };
 }
 
-export const STEPS: Step[] = [
+const LAYOUT: Step[] = [
   {
     slug: "neck",
     title: "Neck Customization",
@@ -257,12 +265,81 @@ export const STEPS: Step[] = [
   },
 ];
 
-export const getStep = (slug: string) => STEPS.find((s) => s.slug === slug);
-export const stepIndex = (slug: string) => STEPS.findIndex((s) => s.slug === slug);
+// Offered groups the layout doesn't place yet (e.g. a new group in the
+// vocabulary) still reach the customer, on one closing step.
+const EXTRA_STEP = {
+  slug: "more-details",
+  title: "More Details",
+  subtitle: "A few more choices for this outfit.",
+  cta: "Save Details",
+  reviewLabel: "More details",
+};
+
+export const isStepSlug = (slug: string) => slug === EXTRA_STEP.slug || LAYOUT.some((s) => s.slug === slug);
+export const stepTitle = (slug: string) =>
+  slug === EXTRA_STEP.slug ? EXTRA_STEP.title : LAYOUT.find((s) => s.slug === slug)?.title;
 
 export type Selections = Record<string, string>;
+
+// Fits offered groups (evaluateOptions output, or the whole vocabulary for the
+// admin screen) into the prototype's steps. Steps with nothing offered are
+// left out. Default per group: the template's recommendation, then the
+// option marked default, then the prototype's default, then the first value.
+export function buildSteps(groups: EvaluatedOptionGroup[], recommended: Record<string, string> = {}): Step[] {
+  const byKey = new Map(groups.map((g) => [g.groupKey, g]));
+  const placed = new Set<string>();
+
+  const toGroup = (offered: EvaluatedOptionGroup, layout?: Group): Group => {
+    const options = offered.values.map((v) => ({
+      id: v.key,
+      label: v.label,
+      image: layout?.options.find((o) => o.id === v.key)?.image ?? null,
+    }));
+    const has = (id: string | undefined) => (id && options.some((o) => o.id === id) ? id : undefined);
+    const defaultId =
+      has(recommended[offered.groupKey]) ??
+      has(offered.values.find((v) => v.isDefault)?.key) ??
+      has(layout?.defaultId) ??
+      options[0].id;
+    return { id: offered.groupKey, title: layout?.title ?? offered.groupLabel, options, defaultId };
+  };
+
+  const steps: Step[] = [];
+  for (const step of LAYOUT) {
+    const stepGroups = step.groups.flatMap((layoutGroup) => {
+      const offered = byKey.get(layoutGroup.id);
+      if (!offered || offered.values.length === 0) return [];
+      placed.add(offered.groupKey);
+      return [toGroup(offered, layoutGroup)];
+    });
+    if (stepGroups.length > 0) steps.push({ ...step, groups: stepGroups });
+  }
+
+  const extra = groups.filter((g) => !placed.has(g.groupKey) && g.values.length > 0).map((g) => toGroup(g));
+  if (extra.length > 0) steps.push({ ...EXTRA_STEP, groups: extra });
+
+  return steps;
+}
 
 export function selectedOption(group: Group, selections: Selections): Option {
   const id = selections[group.id] ?? group.defaultId;
   return group.options.find((o) => o.id === id) ?? group.options.find((o) => o.id === group.defaultId)!;
+}
+
+export type UnsupportedChoice = { groupKey: string; label: string; stepSlug: string | null };
+
+// Saved choices this fabric/template no longer offers (agreed: warn, don't
+// silently swap). stepSlug is where to re-pick, or null when the whole group
+// is gone and the choice simply drops out of the order.
+export function unsupportedChoices(
+  steps: Step[],
+  selections: Selections,
+  labels: Record<string, string> = {},
+): UnsupportedChoice[] {
+  return Object.entries(selections).flatMap(([groupKey, valueKey]) => {
+    const step = steps.find((s) => s.groups.some((g) => g.id === groupKey));
+    const group = step?.groups.find((g) => g.id === groupKey);
+    if (group?.options.some((o) => o.id === valueKey)) return [];
+    return [{ groupKey, label: labels[groupKey] ?? valueKey, stepSlug: step?.slug ?? null }];
+  });
 }
