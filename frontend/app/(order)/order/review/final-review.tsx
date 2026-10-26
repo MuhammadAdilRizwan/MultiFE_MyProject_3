@@ -40,7 +40,8 @@ function Review({ ctx }: { ctx: OrderContext }) {
     if (goneKeys) dropSelections(goneKeys.split("|"));
   }, [goneKeys]);
 
-  const selection = Object.fromEntries(steps.flatMap((s) => s.groups.map((g) => [g.id, selectedOption(g, draft.selections).id])));
+  const groups = steps.flatMap((s) => s.groups);
+  const selection = Object.fromEntries(groups.map((g) => [g.id, selectedOption(g, draft.selections).id]));
   const selectionKey = JSON.stringify(selection);
 
   // Signed-in customer: make sure the account's draft holds exactly this
@@ -117,7 +118,7 @@ function Review({ ctx }: { ctx: OrderContext }) {
                   {toRepick.map((c, i) => (
                     <span key={c.groupKey}>
                       {i > 0 && ", "}
-                      <Link href={`/order/customize#step-${c.stepSlug}`} className="font-semibold underline">
+                      <Link href={`/order/customize#option-${c.groupKey}`} className="font-semibold underline">
                         {c.label}
                       </Link>
                     </span>
@@ -184,42 +185,43 @@ function Review({ ctx }: { ctx: OrderContext }) {
               <div className="flex items-end justify-between gap-4">
                 <div>
                   <h2 id="details-heading" className="text-xs font-bold uppercase tracking-[0.14em] text-ocean">
-                    Selected details
+                    Selected customizations
                   </h2>
                   <p className="mt-1 text-sm text-muted">
-                    {steps.length > 0 ? "Tap Edit on any section to change it." : "This template has no style choices for this fabric."}
+                    {groups.length > 0 ? "Tap Edit on any choice to change it." : "This template has no style choices for this fabric."}
                   </p>
                 </div>
-                {steps.length > 0 && (
+                {groups.length > 0 && (
                   <span className="rounded-full bg-cyan-bright/10 px-3 py-1 text-xs font-bold text-ocean">
-                    {steps.length} {steps.length === 1 ? "item" : "items"}
+                    {groups.length} {groups.length === 1 ? "choice" : "choices"}
                   </span>
                 )}
               </div>
 
               <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-                {steps.map((s) => {
-                  const main = selectedOption(s.groups[0], draft.selections);
-                  const rest = s.groups.slice(1).map((g) => selectedOption(g, draft.selections).label);
+                {groups.map((g) => {
+                  const chosen = selectedOption(g, draft.selections);
                   return (
-                    <li key={s.slug} className="flex gap-3 rounded-2xl border border-line bg-white p-3 shadow-card">
-                      <span className="relative flex h-20 w-20 flex-none items-center justify-center overflow-hidden rounded-xl bg-cream">
-                        {main.image ? (
-                          <Image src={main.image} alt="" fill sizes="80px" className="object-cover" />
+                    <li key={g.id} className="flex gap-3 rounded-2xl border border-line bg-white p-3 shadow-card">
+                      <span className="relative flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-xl bg-cream">
+                        {chosen.image ? (
+                          <Image src={chosen.image} alt="" fill sizes="64px" className="object-cover" />
                         ) : (
                           <span aria-hidden="true" className="font-display text-2xl text-hint">
-                            {main.label.charAt(0)}
+                            {chosen.label.charAt(0)}
                           </span>
                         )}
                       </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{s.reviewLabel}</p>
-                        <p className="mt-0.5 truncate text-sm font-bold text-ink">{main.label}</p>
-                        {rest.length > 0 && <p className="mt-0.5 line-clamp-2 text-xs text-muted">{rest.join(" · ")}</p>}
+                      <div className="min-w-0 flex-1 self-center">
+                        <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{g.title}</p>
+                        <p className="mt-0.5 truncate text-sm font-bold text-ink">{chosen.label}</p>
+                        {chosen.priceDelta > 0 && (
+                          <p className="mt-0.5 text-xs font-semibold text-ocean">+{formatPKR(chosen.priceDelta)}</p>
+                        )}
                       </div>
                       <Link
-                        href={`/order/customize#step-${s.slug}`}
-                        aria-label={`Edit ${s.reviewLabel}`}
+                        href={`/order/customize#option-${g.id}`}
+                        aria-label={`Edit ${g.title}`}
                         className="self-center rounded-full border border-white/30 bg-mf-blue px-3 py-1.5 text-xs font-bold text-white shadow-blue transition-transform hover:-translate-y-px"
                       >
                         Edit

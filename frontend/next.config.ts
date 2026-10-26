@@ -5,6 +5,8 @@ const supabaseHost = supabaseUrl ? new URL(supabaseUrl).hostname : undefined;
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@multife/backend"],
+  // Hide the floating Next.js "N" dev-tools button (it only ever shows in `npm run dev`).
+  devIndicators: false,
   images: {
     remotePatterns: supabaseHost
       ? [

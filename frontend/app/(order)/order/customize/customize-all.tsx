@@ -18,12 +18,13 @@ export function CustomizeAll() {
   return <OrderGate needTemplate>{(ctx) => <CustomizeForm ctx={ctx} />}</OrderGate>;
 }
 
-// Every customization the fabric and template offer, on one page: one
-// section per area (neck, sleeves, …) with a jump bar to move between them.
+// Every customization the fabric and template offer, on one page, in a single
+// "Customizations Offered" section (groups keep the prototype's order).
 function CustomizeForm({ ctx }: { ctx: OrderContext }) {
   const router = useRouter();
   const { steps, draft, brand } = ctx;
   const groups = steps.flatMap((s) => s.groups);
+  const notes = steps.flatMap((s) => (s.note ? [s.note] : []));
   const [choices, setChoices] = useState(() =>
     Object.fromEntries(groups.map((g) => [g.id, selectedOption(g, draft.selections).id])),
   );
@@ -31,7 +32,7 @@ function CustomizeForm({ ctx }: { ctx: OrderContext }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const noLongerOffered = unsupportedChoices(steps, draft.selections, draft.labels).filter((c) => c.stepSlug);
 
-  // "Edit" on the review page links to #step-<slug>; the sections only exist
+  // "Edit" on the review page links to #option-<group>; the groups only exist
   // once the order has loaded, so scroll to it here rather than rely on the
   // browser's jump at navigation time.
   useEffect(() => {
@@ -62,25 +63,6 @@ function CustomizeForm({ ctx }: { ctx: OrderContext }) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <OrderTopBar backHref="/order/preview" storeName={brand.name} />
-      {steps.length > 1 && (
-        <nav
-          aria-label="Customization sections"
-          className="sticky top-16 z-30 border-b border-line bg-white/85 backdrop-blur-xl"
-        >
-          <ul className="mx-auto flex max-w-4xl gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 lg:px-8">
-            {steps.map((s) => (
-              <li key={s.slug} className="flex-none">
-                <a
-                  href={`#step-${s.slug}`}
-                  className="inline-flex h-9 items-center rounded-full border border-line bg-white px-3.5 text-xs font-semibold text-ink transition-colors hover:border-cyan-bright/60 hover:text-ocean"
-                >
-                  {s.reviewLabel}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )}
       <main className="flex-1">
         <div className="mx-auto max-w-4xl px-4 pb-10 pt-8 sm:px-6 lg:px-8">
           <PageTitle
@@ -102,43 +84,40 @@ function CustomizeForm({ ctx }: { ctx: OrderContext }) {
               This template has no style choices for this fabric. Continue to the review.
             </p>
           ) : (
-            <div className="mt-10 space-y-8">
-              {steps.map((step) => (
-                <section
-                  key={step.slug}
-                  id={`step-${step.slug}`}
-                  aria-labelledby={`step-${step.slug}-title`}
-                  className="scroll-mt-32 rounded-3xl border border-line bg-white/80 p-5 shadow-card backdrop-blur-xl sm:p-7"
-                >
-                  <h2 id={`step-${step.slug}-title`} className="font-display text-2xl leading-tight text-ink sm:text-3xl">
-                    {step.title}
-                  </h2>
-                  <p className="mt-1 text-sm text-muted">{step.subtitle}</p>
+            <section
+              aria-labelledby="offered-title"
+              className="mt-10 rounded-3xl border border-line bg-white/80 p-5 shadow-card backdrop-blur-xl sm:p-7"
+            >
+              <h2 id="offered-title" className="font-display text-2xl leading-tight text-ink sm:text-3xl">
+                Customizations Offered
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                Everything {brand.name} offers for this fabric and template, all in one place.
+              </p>
 
-                  <div className="mt-6 space-y-8">
-                    {step.groups.map((g, i) => (
-                      <OptionGroup
-                        key={g.id}
-                        group={g}
-                        index={i + 1}
-                        value={choices[g.id]}
-                        onChange={(id) => setChoices((c) => ({ ...c, [g.id]: id }))}
-                      />
-                    ))}
+              <div className="mt-6 space-y-8">
+                {groups.map((g, i) => (
+                  <div key={g.id} id={`option-${g.id}`} className="scroll-mt-24">
+                    <OptionGroup
+                      group={g}
+                      index={i + 1}
+                      value={choices[g.id]}
+                      onChange={(id) => setChoices((c) => ({ ...c, [g.id]: id }))}
+                    />
                   </div>
+                ))}
+              </div>
 
-                  {step.note && (
-                    <p className="mt-8 flex gap-3 rounded-2xl border border-cyan-bright/30 bg-cyan-bright/10 p-4 text-sm leading-6 text-ink">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="mt-0.5 h-5 w-5 flex-none text-ocean" aria-hidden="true">
-                        <circle cx="12" cy="12" r="9" />
-                        <path d="M12 11v5M12 8h.01" />
-                      </svg>
-                      {step.note}
-                    </p>
-                  )}
-                </section>
+              {notes.map((note) => (
+                <p key={note} className="mt-8 flex gap-3 rounded-2xl border border-cyan-bright/30 bg-cyan-bright/10 p-4 text-sm leading-6 text-ink">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="mt-0.5 h-5 w-5 flex-none text-ocean" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 11v5M12 8h.01" />
+                  </svg>
+                  {note}
+                </p>
               ))}
-            </div>
+            </section>
           )}
         </div>
       </main>
