@@ -26,6 +26,7 @@ export function OptionCard({
   selected,
   onSelect,
   textOnly = false,
+  extra,
   sizes = "(min-width: 1024px) 160px, (min-width: 640px) 22vw, 30vw",
 }: {
   label: string;
@@ -33,6 +34,8 @@ export function OptionCard({
   selected: boolean;
   onSelect: () => void;
   textOnly?: boolean;
+  // e.g. "+PKR 300" when this choice costs extra
+  extra?: string;
   sizes?: string;
 }) {
   return (
@@ -49,8 +52,9 @@ export function OptionCard({
           )}
         </span>
       )}
-      <span className="flex min-h-[3rem] items-center justify-center px-2 py-2 text-center text-xs font-bold leading-tight text-ink sm:text-sm">
+      <span className="flex min-h-[3rem] flex-col items-center justify-center px-2 py-2 text-center text-xs font-bold leading-tight text-ink sm:text-sm">
         {label}
+        {extra && <span className="mt-0.5 text-[11px] font-semibold text-ocean">{extra}</span>}
       </span>
     </button>
   );

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { TemplateRow } from "@multife/backend/modules/catalog/types";
 import { listCompatibleTemplatesForFabricAction } from "@/app/(storefront)/catalog-actions";
 import { ActionBar, ArrowIcon } from "@/components/order/action-bar";
@@ -11,9 +11,10 @@ import { OrderGate, type OrderContext } from "@/components/order/order-gate";
 import { OrderTopBar } from "@/components/order/order-top-bar";
 import { PageTitle } from "@/components/order/page-title";
 import { Alert } from "@/components/ui/alert";
-import { buttonClasses } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { estimateOrderFrom, formatPKR, templateImage } from "@/lib/catalog";
 import { updateDraft } from "@/lib/order-draft";
+import { ensureRemoteDraft } from "@/lib/order-sync";
 
 type Loaded = { fabricId: string; templates: TemplateRow[] | null };
 
@@ -26,6 +27,8 @@ function Library({ ctx }: { ctx: OrderContext }) {
   const { draft, brand, fabric } = ctx;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
+  const [saving, startSaving] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // FR-CUS-06: only templates this fabric's supported options can make.
   useEffect(() => {
@@ -108,22 +111,42 @@ function Library({ ctx }: { ctx: OrderContext }) {
         </section>
       </main>
       <ActionBar>
-        <button
+        {saveError && (
+          <div className="mb-2 w-full">
+            <Alert tone="danger">{saveError}</Alert>
+          </div>
+        )}
+        <Button
           type="button"
           disabled={!selectedId}
+          pending={saving}
+          pendingLabel="Saving…"
           onClick={() => {
             if (!selectedId) return;
+            setSaveError(null);
             // Choices belong to a template; a different one starts fresh.
             updateDraft(
               selectedId === draft.templateId ? { templateId: selectedId } : { templateId: selectedId, selections: {}, labels: {} },
             );
-            router.push("/order/preview");
+            if (!ctx.isCustomer) {
+              router.push("/order/preview");
+              return;
+            }
+            // Signed-in customers: the order is saved to their account from here on.
+            startSaving(async () => {
+              const result = await ensureRemoteDraft();
+              if (!result.ok) {
+                setSaveError(result.error);
+                return;
+              }
+              router.push("/order/preview");
+            });
           }}
-          className={`${buttonClasses("primary")} w-full`}
+          className="w-full"
         >
           {selectedId ? "Continue" : "Select a Template"}
           <ArrowIcon />
-        </button>
+        </Button>
       </ActionBar>
     </div>
   );

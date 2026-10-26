@@ -14,6 +14,7 @@ vi.mock("@multife/backend/modules/rules/isTemplateCompatibleWithFabric", () => (
   isTemplateCompatibleWithFabric: vi.fn(),
 }));
 vi.mock("@/lib/suppliers", () => ({ getActiveBrandBySlug: vi.fn() }));
+vi.mock("@multife/backend/modules/users/getActor", () => ({ getCurrentProfile: vi.fn() }));
 
 import { createClient } from "@/lib/supabase/server";
 import { listFabrics } from "@multife/backend/modules/catalog/listFabrics";
@@ -23,6 +24,7 @@ import { getTemplate } from "@multife/backend/modules/catalog/getTemplate";
 import { evaluateOptions } from "@multife/backend/modules/rules/evaluateOptions";
 import { isTemplateCompatibleWithFabric } from "@multife/backend/modules/rules/isTemplateCompatibleWithFabric";
 import { getActiveBrandBySlug } from "@/lib/suppliers";
+import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import {
   getFabricAction,
   getOrderContextAction,
@@ -225,6 +227,7 @@ describe("getOrderContextAction", () => {
   beforeEach(() => {
     vi.mocked(getActiveBrandBySlug).mockResolvedValue(brand);
     vi.mocked(getFabric).mockResolvedValue(fabric as never);
+    vi.mocked(getCurrentProfile).mockResolvedValue(null);
   });
 
   it("fails when the store isn't live", async () => {
@@ -256,7 +259,7 @@ describe("getOrderContextAction", () => {
 
     const result = await getOrderContextAction({ brandSlug: "khadi", fabricId, templateId: null });
 
-    expect(result).toEqual({ ok: true, data: { brand, fabric, template: null, options: [] } });
+    expect(result).toEqual({ ok: true, data: { brand, fabric, template: null, options: [], isCustomer: false } });
     expect(getTemplate).not.toHaveBeenCalled();
   });
 
@@ -278,7 +281,23 @@ describe("getOrderContextAction", () => {
     expect(evaluateOptions).toHaveBeenCalledWith([], { neckline: ["round"] });
     expect(result).toEqual({
       ok: true,
-      data: { brand, fabric, template: { id: templateId, name: "Kurti", is_published: true }, options: evaluated },
+      data: { brand, fabric, template: { id: templateId, name: "Kurti", is_published: true }, options: evaluated, isCustomer: false },
     });
+  });
+
+  it("marks an active signed-in customer, who gets a database draft", async () => {
+    vi.mocked(getCurrentProfile).mockResolvedValue({ id: "c1", role: "customer", status: "active" } as never);
+
+    const result = await getOrderContextAction({ brandSlug: "khadi", fabricId });
+
+    expect(result.ok && result.data.isCustomer).toBe(true);
+  });
+
+  it("does not treat an admin as a customer", async () => {
+    vi.mocked(getCurrentProfile).mockResolvedValue({ id: "a1", role: "admin", status: "active" } as never);
+
+    const result = await getOrderContextAction({ brandSlug: "khadi", fabricId });
+
+    expect(result.ok && result.data.isCustomer).toBe(false);
   });
 });

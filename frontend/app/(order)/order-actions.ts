@@ -17,6 +17,7 @@ import { priceOrder, type PriceBreakdown } from "@multife/backend/modules/rules/
 import type { TemplateOptionInput } from "@multife/backend/modules/rules/types";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
+import { nominalMeasurements } from "@/lib/catalog";
 import { describeError } from "@/lib/describe-error";
 import { createClient } from "@/lib/supabase/server";
 
@@ -33,20 +34,6 @@ function toTemplateOptionInputs(options: TemplateOptionRow[]): TemplateOptionInp
     extraLeadDays: option.extra_lead_days,
     isDefault: option.is_default,
   }));
-}
-
-// D9/SDS §6.2's first yardage pass wants "the template's nominal/default
-// size" — there's no such field in the schema (required_measurements only
-// carries min/max), so this uses the midpoint as a placeholder pending a
-// real "standard size" definition.
-function nominalMeasurementsFor(
-  requiredMeasurements: Array<{ key: string; min: number; max: number }>,
-): Record<string, number> {
-  const measurements: Record<string, number> = {};
-  for (const field of requiredMeasurements) {
-    measurements[field.key] = (field.min + field.max) / 2;
-  }
-  return measurements;
 }
 
 interface LoadedDraftContext {
@@ -76,7 +63,7 @@ async function loadAndPriceDraft(
 
   const yardageMetres = estimateYardage({
     yardageFormula: template.yardage_formula,
-    measurements: nominalMeasurementsFor(template.required_measurements),
+    measurements: nominalMeasurements(template.required_measurements),
     selection: draft.options,
     fabricHasDirectionalPattern: Boolean(fabric.properties?.directional_pattern),
   });

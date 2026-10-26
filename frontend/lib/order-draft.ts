@@ -15,10 +15,13 @@ export type Draft = {
   templateId: string | null;
   selections: Selections;
   labels: Record<string, string>;
+  // The signed-in customer's order_drafts row (order module) for this exact
+  // fabric + template; a different pair needs a new row. Null for guests.
+  remote: { id: string; fabricId: string; templateId: string } | null;
 };
 
 const KEY = "multife:order-draft";
-const EMPTY: Draft = { brandSlug: null, fabricId: null, templateId: null, selections: {}, labels: {} };
+const EMPTY: Draft = { brandSlug: null, fabricId: null, templateId: null, selections: {}, labels: {}, remote: null };
 
 let current: Draft = EMPTY;
 let loaded = false;
@@ -43,6 +46,12 @@ function write(next: Draft) {
     // Private mode or storage full — keep working in memory.
   }
   listeners.forEach((l) => l());
+}
+
+// The latest saved draft, for code outside React (lib/order-sync.ts).
+export function readDraft(): Draft {
+  load();
+  return current;
 }
 
 export function updateDraft(patch: Partial<Draft>) {

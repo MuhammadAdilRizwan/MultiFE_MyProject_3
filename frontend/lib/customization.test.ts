@@ -28,8 +28,8 @@ describe("buildSteps", () => {
     const [neck] = buildSteps([neckline]);
 
     expect(neck.groups[0].options).toEqual([
-      { id: "v-neck", label: "V-Neck", image: "/customize/neck-customization-v-neck.webp" },
-      { id: "boat-neck", label: "Boat Neck", image: "/customize/neck-customization-boat-neck.webp" },
+      { id: "v-neck", label: "V-Neck", image: "/customize/neck-customization-v-neck.webp", priceDelta: 0 },
+      { id: "boat-neck", label: "Boat Neck", image: "/customize/neck-customization-boat-neck.webp", priceDelta: 0 },
     ]);
   });
 

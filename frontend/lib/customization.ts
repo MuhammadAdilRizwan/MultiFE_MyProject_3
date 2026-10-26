@@ -10,7 +10,8 @@ import type { EvaluatedOptionGroup } from "@multife/backend/modules/rules/types"
 // admin); buildSteps() fits that into this layout. Group ids and option ids
 // here are the option_groups.key / option_values.key they match.
 
-export type Option = { id: string; label: string; image: string | null };
+// priceDelta: what choosing this value adds to the order (template_options.price_delta).
+export type Option = { id: string; label: string; image: string | null; priceDelta: number };
 
 export type Group = {
   id: string;
@@ -37,7 +38,7 @@ type Raw = string | [label: string, file: string, prefix?: string];
 function group(id: string, title: string, prefix: string, raw: Raw[], defaultLabel: string): Group {
   const options = raw.map((r) => {
     const [label, file, ownPrefix] = typeof r === "string" ? [r, r, undefined] : r;
-    return { id: slugify(label), label, image: `/customize/${ownPrefix ?? prefix}-${slugify(file)}.webp` };
+    return { id: slugify(label), label, image: `/customize/${ownPrefix ?? prefix}-${slugify(file)}.webp`, priceDelta: 0 };
   });
   const defaultId = slugify(defaultLabel);
   if (!options.some((o) => o.id === defaultId)) throw new Error(`Bad default ${defaultLabel} in ${id}`);
@@ -290,6 +291,7 @@ export function buildSteps(groups: EvaluatedOptionGroup[], recommended: Record<s
       id: v.key,
       label: v.label,
       image: layout?.options.find((o) => o.id === v.key)?.image ?? null,
+      priceDelta: v.priceDelta,
     }));
     const has = (id: string | undefined) => (id && options.some((o) => o.id === id) ? id : undefined);
     const defaultId =

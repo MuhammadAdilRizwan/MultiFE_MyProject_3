@@ -8,16 +8,14 @@ import { buildSteps, type Step } from "@/lib/customization";
 import { useDraft, type Draft } from "@/lib/order-draft";
 import { OrderTopBar } from "./order-top-bar";
 
-export type OrderContext = Omit<OrderContextData, "options"> & { draft: Draft; steps: Step[] };
+export type OrderContext = OrderContextData & { draft: Draft; steps: Step[] };
 
 type Loaded = { key: string; result: Awaited<ReturnType<typeof getOrderContextAction>> };
 
-// Moving between customize steps shouldn't refetch the same order; a full
-// reload reads fresh again.
-const cache = new Map<string, Loaded["result"]>();
-
 // Renders children only once the saved order has been read and checked
 // against the live catalogue; otherwise a loading state or a way back to the start.
+// Read fresh on every order page (no cache): availability and who is signed in
+// can change between pages.
 export function OrderGate({
   needTemplate = false,
   children,
@@ -33,11 +31,10 @@ export function OrderGate({
   const templateId = draft?.templateId ?? null;
 
   useEffect(() => {
-    if (!key || !brandSlug || !fabricId || cache.has(key)) return;
+    if (!key || !brandSlug || !fabricId) return;
     let cancelled = false;
     getOrderContextAction({ brandSlug, fabricId, templateId })
       .then((result) => {
-        if (result.ok) cache.set(key, result);
         if (!cancelled) setLoaded({ key, result });
       })
       .catch(() => {
@@ -49,7 +46,7 @@ export function OrderGate({
   }, [key, brandSlug, fabricId, templateId]);
 
   if (draft && !key) return <StartAgain />;
-  const result = (key && cache.get(key)) || (loaded?.key === key ? loaded.result : null);
+  const result = loaded?.key === key ? loaded.result : null;
   if (!draft || !result) {
     return (
       <div className="flex min-h-full flex-1 items-center justify-center" role="status" aria-label="Loading your order">
@@ -63,8 +60,8 @@ export function OrderGate({
   }
   if (needTemplate && !result.data.template) return <ChooseTemplate />;
 
-  const { options, ...data } = result.data;
-  const steps = buildSteps(options, data.template?.recommended_options ?? {});
+  const data = result.data;
+  const steps = buildSteps(data.options, data.template?.recommended_options ?? {});
   return <>{children({ ...data, draft, steps })}</>;
 }
 

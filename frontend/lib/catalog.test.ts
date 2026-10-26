@@ -1,30 +1,67 @@
 import { describe, expect, it } from "vitest";
-import { estimateFabricMetres, estimateOrderFrom, fabricName, fabricProperties, formatMetres, templateImage } from "./catalog";
+import {
+  estimateFabricMetres,
+  estimateOrderFrom,
+  fabricName,
+  fabricProperties,
+  formatMetres,
+  nominalMeasurements,
+  templateImage,
+} from "./catalog";
 
 const formula = { base_metres: 4.5, coefficients: { chest: 0.015 }, wastage_margin: 0.1 };
+const required_measurements = [{ key: "chest", label: "Chest", unit: "cm", min: 60, max: 160 }];
+
+describe("nominalMeasurements", () => {
+  it("uses the midpoint of each field's range", () => {
+    expect(nominalMeasurements(required_measurements)).toEqual({ chest: 110 });
+    expect(nominalMeasurements(undefined)).toEqual({});
+  });
+});
 
 describe("estimateFabricMetres", () => {
-  it("uses the template's base and margin at nominal size", () => {
-    expect(estimateFabricMetres({ yardage_formula: formula }, { properties: {} })).toBe(4.95);
+  it("applies the template formula at the nominal size", () => {
+    // (4.5 + 0.015 × 110) × 1.1
+    expect(estimateFabricMetres({ yardage_formula: formula, required_measurements }, { properties: {} })).toBe(6.765);
   });
 
   it("adds the extra margin for a directional-pattern fabric", () => {
-    expect(estimateFabricMetres({ yardage_formula: formula }, { properties: { directional_pattern: true } })).toBe(5.175);
+    expect(
+      estimateFabricMetres({ yardage_formula: formula, required_measurements }, { properties: { directional_pattern: true } }),
+    ).toBe(7.073);
   });
 
   it("returns null when the template has no formula yet", () => {
-    expect(estimateFabricMetres({ yardage_formula: {} as never }, { properties: {} })).toBeNull();
+    expect(estimateFabricMetres({ yardage_formula: {} as never, required_measurements }, { properties: {} })).toBeNull();
   });
 });
 
 describe("estimateOrderFrom", () => {
-  it("is fabric plus base stitching, with no template option extras", () => {
-    const estimate = estimateOrderFrom(
-      { yardage_formula: formula, base_stitch_price: 2500 },
-      { properties: {}, price_per_metre: 900 },
-    );
+  const template = { yardage_formula: formula, required_measurements, base_stitch_price: 2500 };
+  const fabric = { properties: {}, price_per_metre: 900 };
+  const offered = [
+    {
+      groupKey: "closure",
+      groupLabel: "Closure",
+      values: [
+        { key: "buttons", label: "Buttons", priceDelta: 0, extraLeadDays: 0, isDefault: true },
+        { key: "zip", label: "Zip", priceDelta: 300, extraLeadDays: 0, isDefault: false },
+      ],
+    },
+  ];
 
-    expect(estimate).toEqual({ metres: 4.95, total: 6955 });
+  it("is fabric plus base stitching when nothing extra is chosen", () => {
+    expect(estimateOrderFrom(template, fabric)).toEqual({
+      yardageMetres: 6.765,
+      fabricCost: 6088.5,
+      stitchCost: 2500,
+      optionsCost: 0,
+      total: 8588.5,
+    });
+  });
+
+  it("adds the extra price of the chosen options", () => {
+    expect(estimateOrderFrom(template, fabric, offered, { closure: "zip" })).toMatchObject({ optionsCost: 300, total: 8888.5 });
   });
 });
 

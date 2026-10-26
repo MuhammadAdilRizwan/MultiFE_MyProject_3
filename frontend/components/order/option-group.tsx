@@ -1,6 +1,7 @@
 "use client";
 
 import type { KeyboardEvent } from "react";
+import { formatPKR } from "@/lib/catalog";
 import type { Group } from "@/lib/customization";
 import { OptionCard } from "./option-card";
 
@@ -57,6 +58,7 @@ export function OptionGroup({
             label={o.label}
             image={o.image}
             textOnly={textOnly}
+            extra={o.priceDelta > 0 ? `+${formatPKR(o.priceDelta)}` : undefined}
             selected={o.id === value}
             onSelect={() => onChange(o.id)}
           />

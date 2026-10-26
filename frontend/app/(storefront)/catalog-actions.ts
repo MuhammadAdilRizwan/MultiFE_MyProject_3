@@ -9,6 +9,7 @@ import type { FabricImageRow, FabricRow, TemplateOptionRow, TemplateRow } from "
 import { evaluateOptions } from "@multife/backend/modules/rules/evaluateOptions";
 import { isTemplateCompatibleWithFabric } from "@multife/backend/modules/rules/isTemplateCompatibleWithFabric";
 import type { EvaluatedOptionGroup, TemplateOptionInput } from "@multife/backend/modules/rules/types";
+import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
 import { describeError } from "@/lib/describe-error";
 import { createClient } from "@/lib/supabase/server";
@@ -201,6 +202,9 @@ export type OrderContextData = {
   template: TemplateRow | null;
   // The template's options this fabric supports (SDS §5.2) — empty until a template is chosen.
   options: EvaluatedOptionGroup[];
+  // A signed-in, active customer gets a database draft (order module); guests
+  // and other roles keep the draft in the browser only.
+  isCustomer: boolean;
 };
 
 // Everything the order screens need for the customer's saved draft, read
@@ -221,14 +225,17 @@ export async function getOrderContextAction(
     const fabric = await getFabric(supabase, parsed.data.fabricId);
     if (!fabric || fabric.supplier_id !== brand.id || !isOrderable(fabric)) return fail("Fabric not found.");
 
-    if (!parsed.data.templateId) return ok({ brand, fabric, template: null, options: [] });
+    const actor = await getCurrentProfile(supabase);
+    const isCustomer = actor?.role === "customer" && actor.status === "active";
+
+    if (!parsed.data.templateId) return ok({ brand, fabric, template: null, options: [], isCustomer });
 
     const full = await getTemplate(supabase, parsed.data.templateId);
     if (!full || !full.is_published) return fail("Template not found.");
 
     const { options: templateOptions, ...template } = full;
     const options = evaluateOptions(toTemplateOptionInputs(templateOptions), fabric.supported_options);
-    return ok({ brand, fabric, template, options });
+    return ok({ brand, fabric, template, options, isCustomer });
   } catch (error) {
     return fail(describeError(error));
   }

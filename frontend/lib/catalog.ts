@@ -1,6 +1,7 @@
 import type { FabricRow, TemplateRow } from "@multife/backend/modules/catalog/types";
 import { estimateYardage } from "@multife/backend/modules/rules/estimateYardage";
-import type { OptionSelection } from "@multife/backend/modules/rules/types";
+import { priceOrder, type PriceBreakdown } from "@multife/backend/modules/rules/priceOrder";
+import type { EvaluatedOptionGroup, OptionSelection } from "@multife/backend/modules/rules/types";
 
 // Display helpers for the live catalogue (catalog module rows). Isomorphic:
 // used by server pages and client order screens alike.
@@ -37,11 +38,24 @@ export function fabricProperties(fabric: Pick<FabricRow, "properties">): { key: 
 
 const hasDirectionalPattern = (fabric: Pick<FabricRow, "properties">) => fabric.properties.directional_pattern === true;
 
-// First-pass yardage (D9): the template's formula at nominal size, before the
-// customer's measurements exist — so this is a "from" figure. Null when the
-// template has no usable formula yet.
+// D9/SDS §6.2 first yardage pass wants the template's nominal size; the schema
+// only has min/max per field, so the midpoint stands in (same placeholder the
+// order module uses server-side, so both price the same way).
+export function nominalMeasurements(
+  requiredMeasurements: Array<{ key: string; min: number; max: number }> | null | undefined,
+): Record<string, number> {
+  const measurements: Record<string, number> = {};
+  for (const field of requiredMeasurements ?? []) {
+    measurements[field.key] = (field.min + field.max) / 2;
+  }
+  return measurements;
+}
+
+// First-pass yardage at nominal size, before the customer's measurements
+// exist — so this is a "from" figure. Null when the template has no usable
+// formula yet.
 export function estimateFabricMetres(
-  template: Pick<TemplateRow, "yardage_formula">,
+  template: Pick<TemplateRow, "yardage_formula" | "required_measurements">,
   fabric: Pick<FabricRow, "properties">,
   selection: OptionSelection = {},
 ): number | null {
@@ -49,23 +63,31 @@ export function estimateFabricMetres(
   if (!formula || typeof formula.base_metres !== "number") return null;
   return estimateYardage({
     yardageFormula: { base_metres: formula.base_metres, coefficients: formula.coefficients ?? {}, wastage_margin: formula.wastage_margin ?? 0 },
-    measurements: {},
+    measurements: nominalMeasurements(template.required_measurements),
     selection,
     fabricHasDirectionalPattern: hasDirectionalPattern(fabric),
   });
 }
 
-// Agreed pricing: fabric + the template's base stitching. Option extras are
-// charged only when the store's own feed prices them, which no store sends yet,
-// so template price_delta is deliberately not added.
+// The order module's priceOrder (fabric + base stitching + the extras of the
+// chosen options), computed in the browser for guests and for "from" prices.
+// A signed-in customer's review uses the server's priceDraftAction instead.
+// `selection` must only hold values present in `offered`.
 export function estimateOrderFrom(
-  template: Pick<TemplateRow, "yardage_formula" | "base_stitch_price">,
+  template: Pick<TemplateRow, "yardage_formula" | "required_measurements" | "base_stitch_price">,
   fabric: Pick<FabricRow, "properties" | "price_per_metre">,
+  offered: EvaluatedOptionGroup[] = [],
   selection: OptionSelection = {},
-): { metres: number; total: number } | null {
+): PriceBreakdown | null {
   const metres = estimateFabricMetres(template, fabric, selection);
   if (metres === null) return null;
-  return { metres, total: Math.round(metres * fabric.price_per_metre + template.base_stitch_price) };
+  return priceOrder({
+    fabricPricePerMetre: fabric.price_per_metre,
+    templateBaseStitchPrice: template.base_stitch_price,
+    yardageMetres: metres,
+    evaluatedOptions: offered,
+    selection,
+  });
 }
 
 // The client's own template photos in /public/templates, used until templates

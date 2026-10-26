@@ -2,24 +2,31 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import type { PriceBreakdown } from "@multife/backend/modules/rules/priceOrder";
+import { priceDraftAction, takeSoftReservationAction } from "@/app/(order)/order-actions";
 import { ActionBar } from "@/components/order/action-bar";
 import { OrderGate, type OrderContext } from "@/components/order/order-gate";
 import { OrderTopBar } from "@/components/order/order-top-bar";
 import { PageTitle } from "@/components/order/page-title";
 import { Alert } from "@/components/ui/alert";
-import { buttonClasses } from "@/components/ui/button";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { estimateOrderFrom, fabricName, formatMetres, formatPKR, templateImage } from "@/lib/catalog";
 import { selectedOption, unsupportedChoices } from "@/lib/customization";
 import { dropSelections } from "@/lib/order-draft";
+import { syncRemoteOptions } from "@/lib/order-sync";
+
+type ServerPrice =
+  | { status: "loading" }
+  | { status: "ready"; draftId: string; price: PriceBreakdown }
+  | { status: "error"; error: string };
 
 export function FinalReview() {
   return <OrderGate needTemplate>{(ctx) => <Review ctx={ctx} />}</OrderGate>;
 }
 
 function Review({ ctx }: { ctx: OrderContext }) {
-  const [saved, setSaved] = useState(false);
-  const { draft, brand, fabric, steps } = ctx;
+  const { draft, brand, fabric, steps, isCustomer } = ctx;
   const t = ctx.template!;
 
   // Agreed: a choice the store stopped offering is never swapped silently.
@@ -34,7 +41,54 @@ function Review({ ctx }: { ctx: OrderContext }) {
   }, [goneKeys]);
 
   const selection = Object.fromEntries(steps.flatMap((s) => s.groups.map((g) => [g.id, selectedOption(g, draft.selections).id])));
-  const estimate = estimateOrderFrom(t, fabric, selection);
+  const selectionKey = JSON.stringify(selection);
+
+  // Signed-in customer: make sure the account's draft holds exactly this
+  // design (covers a guest who just signed in), then show the server's price.
+  // Guests see the same formula computed here.
+  const [server, setServer] = useState<ServerPrice>({ status: "loading" });
+  useEffect(() => {
+    if (!isCustomer || toRepick.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      const synced = await syncRemoteOptions(JSON.parse(selectionKey));
+      if (!synced.ok) return synced;
+      const priced = await priceDraftAction({ draftId: synced.data });
+      return priced.ok ? { ok: true as const, draftId: synced.data, price: priced.data } : priced;
+    })()
+      .then((result) => {
+        if (cancelled) return;
+        setServer(result.ok ? { status: "ready", draftId: result.draftId, price: result.price } : { status: "error", error: result.error });
+      })
+      .catch(() => {
+        if (!cancelled) setServer({ status: "error", error: "We couldn't save your order. Please try again." });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isCustomer, selectionKey, toRepick.length]);
+
+  const price = server.status === "ready" ? server.price : toRepick.length === 0 ? estimateOrderFrom(t, fabric, ctx.options, selection) : null;
+
+  const [reserving, startReserving] = useTransition();
+  const [reserveError, setReserveError] = useState<string | null>(null);
+  const [heldUntil, setHeldUntil] = useState<string | null>(null);
+  function reserve() {
+    if (server.status !== "ready") return;
+    setReserveError(null);
+    startReserving(async () => {
+      const result = await takeSoftReservationAction({ draftId: server.draftId });
+      if (!result.ok) {
+        setReserveError(result.error);
+        return;
+      }
+      setHeldUntil(
+        result.data.expires_at
+          ? new Date(result.data.expires_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+          : "",
+      );
+    });
+  }
   const name = fabricName(fabric);
   const preview = templateImage(t.slug) ?? fabric.images[0]?.url ?? null;
   const lastHref = steps.length > 0 ? "/order/customize" : "/order/preview";
@@ -95,24 +149,35 @@ function Review({ ctx }: { ctx: OrderContext }) {
                 <SummaryChip label="Fabric" value={name} image={fabric.images[0]?.url ?? null} href={`/s/${brand.slug}`} />
                 <SummaryChip label="Template" value={t.name} image={templateImage(t.slug)} href="/order/template" />
               </div>
-              <dl className="divide-y divide-line border-t border-line px-4 text-sm">
-                {estimate && (
+              {price ? (
+                <dl className="divide-y divide-line border-t border-line px-4 text-sm">
                   <div className="flex items-center justify-between gap-3 py-3">
-                    <dt className="text-muted">Fabric (est. {formatMetres(estimate.metres)})</dt>
-                    <dd className="font-bold text-ink">{formatPKR(Math.round(estimate.metres * fabric.price_per_metre))}</dd>
+                    <dt className="text-muted">Fabric (est. {formatMetres(price.yardageMetres)})</dt>
+                    <dd className="font-bold text-ink">{formatPKR(price.fabricCost)}</dd>
                   </div>
-                )}
-                <div className="flex items-center justify-between gap-3 py-3">
-                  <dt className="text-muted">Stitching</dt>
-                  <dd className="font-bold text-ink">{formatPKR(t.base_stitch_price)}</dd>
-                </div>
-                {estimate && (
+                  <div className="flex items-center justify-between gap-3 py-3">
+                    <dt className="text-muted">Stitching</dt>
+                    <dd className="font-bold text-ink">{formatPKR(price.stitchCost)}</dd>
+                  </div>
+                  {price.optionsCost > 0 && (
+                    <div className="flex items-center justify-between gap-3 py-3">
+                      <dt className="text-muted">Style extras</dt>
+                      <dd className="font-bold text-ink">{formatPKR(price.optionsCost)}</dd>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between gap-3 py-4">
-                    <dt className="font-bold text-ink">Estimated order from</dt>
-                    <dd className="text-base font-extrabold text-ocean">{formatPKR(estimate.total)}</dd>
+                    <dt className="font-bold text-ink">Estimated total</dt>
+                    <dd className="text-base font-extrabold text-ocean">{formatPKR(price.total)}</dd>
                   </div>
-                )}
-              </dl>
+                  <p className="pb-4 text-xs leading-5 text-hint">
+                    Based on a standard size. The final price is recalculated from your measurements before you pay.
+                  </p>
+                </dl>
+              ) : (
+                <p className="border-t border-line px-4 py-4 text-sm text-muted">
+                  {toRepick.length > 0 ? "Re-pick the options above to see the price." : "Price is shown once this template's fabric quantity is set."}
+                </p>
+              )}
             </aside>
 
             <section aria-labelledby="details-heading">
@@ -168,19 +233,47 @@ function Review({ ctx }: { ctx: OrderContext }) {
         </div>
       </main>
       <ActionBar backHref={lastHref}>
-        {saved ? (
+        {!isCustomer ? (
+          // FR-CUS-02: signing in is what saves the order to an account.
+          <>
+            <p className="mb-2 text-center text-sm text-muted">
+              Sign in with your customer account to save this design and reserve your fabric.
+            </p>
+            {toRepick.length > 0 ? (
+              <button type="button" disabled className={`${buttonClasses("primary")} w-full`}>
+                Sign in to save
+              </button>
+            ) : (
+              <Link href="/sign-in?next=/order/review" className={`${buttonClasses("primary")} w-full`}>
+                Sign in to save
+              </Link>
+            )}
+          </>
+        ) : heldUntil !== null ? (
           <div className="w-full">
-            <Alert tone="success">Your design is saved on this device. Measurements and checkout come next.</Alert>
+            <Alert tone="success">
+              Your design is saved to your account and {price ? formatMetres(price.yardageMetres) : "your fabric"} of{" "}
+              {name} is held for you{heldUntil ? ` until ${heldUntil}` : ""}. Measurements and checkout come next.
+            </Alert>
           </div>
         ) : (
-          <button
-            type="button"
-            disabled={toRepick.length > 0}
-            onClick={() => setSaved(true)}
-            className={`${buttonClasses("primary")} w-full`}
-          >
-            Save Review
-          </button>
+          <>
+            {(server.status === "error" || reserveError) && (
+              <div className="mb-2 w-full">
+                <Alert tone="danger">{reserveError ?? (server.status === "error" ? server.error : "")}</Alert>
+              </div>
+            )}
+            <Button
+              type="button"
+              onClick={reserve}
+              disabled={toRepick.length > 0 || server.status !== "ready"}
+              pending={reserving || (server.status === "loading" && toRepick.length === 0)}
+              pendingLabel={reserving ? "Reserving…" : "Saving your design…"}
+              className="w-full"
+            >
+              Save &amp; reserve my fabric
+            </Button>
+          </>
         )}
       </ActionBar>
     </div>

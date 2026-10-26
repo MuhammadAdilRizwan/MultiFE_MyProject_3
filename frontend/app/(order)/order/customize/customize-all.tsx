@@ -1,17 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { ActionBar, ArrowIcon } from "@/components/order/action-bar";
 import { OptionGroup } from "@/components/order/option-group";
 import { OrderGate, type OrderContext } from "@/components/order/order-gate";
 import { OrderTopBar } from "@/components/order/order-top-bar";
 import { PageTitle } from "@/components/order/page-title";
 import { Alert } from "@/components/ui/alert";
-import { buttonClasses } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { fabricName } from "@/lib/catalog";
 import { selectedOption, unsupportedChoices } from "@/lib/customization";
 import { setSelections } from "@/lib/order-draft";
+import { syncRemoteOptions } from "@/lib/order-sync";
 
 export function CustomizeAll() {
   return <OrderGate needTemplate>{(ctx) => <CustomizeForm ctx={ctx} />}</OrderGate>;
@@ -26,6 +27,8 @@ function CustomizeForm({ ctx }: { ctx: OrderContext }) {
   const [choices, setChoices] = useState(() =>
     Object.fromEntries(groups.map((g) => [g.id, selectedOption(g, draft.selections).id])),
   );
+  const [saving, startSaving] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
   const noLongerOffered = unsupportedChoices(steps, draft.selections, draft.labels).filter((c) => c.stepSlug);
 
   // "Edit" on the review page links to #step-<slug>; the sections only exist
@@ -41,7 +44,19 @@ function CustomizeForm({ ctx }: { ctx: OrderContext }) {
       groups.map((g) => [g.id, `${g.title}: ${g.options.find((o) => o.id === choices[g.id])?.label ?? ""}`]),
     );
     setSelections(choices, labels);
-    router.push("/order/review");
+    setSaveError(null);
+    if (!ctx.isCustomer) {
+      router.push("/order/review");
+      return;
+    }
+    startSaving(async () => {
+      const result = await syncRemoteOptions(choices);
+      if (!result.ok) {
+        setSaveError(result.error);
+        return;
+      }
+      router.push("/order/review");
+    });
   }
 
   return (
@@ -128,10 +143,15 @@ function CustomizeForm({ ctx }: { ctx: OrderContext }) {
         </div>
       </main>
       <ActionBar backHref="/order/preview" backLabel="Back to template">
-        <button type="button" onClick={save} className={`${buttonClasses("primary")} w-full`}>
-          Save & Review
+        {saveError && (
+          <div className="mb-2 w-full">
+            <Alert tone="danger">{saveError}</Alert>
+          </div>
+        )}
+        <Button type="button" onClick={save} pending={saving} pendingLabel="Saving…" className="w-full">
+          Save &amp; Review
           <ArrowIcon />
-        </button>
+        </Button>
       </ActionBar>
     </div>
   );
