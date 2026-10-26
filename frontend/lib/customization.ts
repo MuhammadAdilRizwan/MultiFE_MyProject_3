@@ -275,10 +275,6 @@ const EXTRA_STEP = {
   reviewLabel: "More details",
 };
 
-export const isStepSlug = (slug: string) => slug === EXTRA_STEP.slug || LAYOUT.some((s) => s.slug === slug);
-export const stepTitle = (slug: string) =>
-  slug === EXTRA_STEP.slug ? EXTRA_STEP.title : LAYOUT.find((s) => s.slug === slug)?.title;
-
 export type Selections = Record<string, string>;
 
 // Fits offered groups (evaluateOptions output, or the whole vocabulary for the

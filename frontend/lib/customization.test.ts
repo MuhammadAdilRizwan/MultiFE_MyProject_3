@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EvaluatedOptionGroup } from "@multife/backend/modules/rules/types";
-import { buildSteps, isStepSlug, selectedOption, unsupportedChoices } from "./customization";
+import { buildSteps, selectedOption, unsupportedChoices } from "./customization";
 
 const value = (key: string, label: string, isDefault = false) => ({ key, label, priceDelta: 0, extraLeadDays: 0, isDefault });
 
@@ -44,7 +44,6 @@ describe("buildSteps", () => {
 
     expect(steps.map((s) => s.slug)).toEqual(["neck", "more-details"]);
     expect(steps[1].groups[0]).toMatchObject({ id: "closure", title: "Closure" });
-    expect(isStepSlug("more-details")).toBe(true);
   });
 
   it("drops a group with no values", () => {

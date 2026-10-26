@@ -37,7 +37,7 @@ function Review({ ctx }: { ctx: OrderContext }) {
   const estimate = estimateOrderFrom(t, fabric, selection);
   const name = fabricName(fabric);
   const preview = templateImage(t.slug) ?? fabric.images[0]?.url ?? null;
-  const lastHref = steps.length > 0 ? `/order/customize/${steps[steps.length - 1].slug}` : "/order/preview";
+  const lastHref = steps.length > 0 ? "/order/customize" : "/order/preview";
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
@@ -63,7 +63,7 @@ function Review({ ctx }: { ctx: OrderContext }) {
                   {toRepick.map((c, i) => (
                     <span key={c.groupKey}>
                       {i > 0 && ", "}
-                      <Link href={`/order/customize/${c.stepSlug}?return=review`} className="font-semibold underline">
+                      <Link href={`/order/customize#step-${c.stepSlug}`} className="font-semibold underline">
                         {c.label}
                       </Link>
                     </span>
@@ -153,7 +153,7 @@ function Review({ ctx }: { ctx: OrderContext }) {
                         {rest.length > 0 && <p className="mt-0.5 line-clamp-2 text-xs text-muted">{rest.join(" · ")}</p>}
                       </div>
                       <Link
-                        href={`/order/customize/${s.slug}?return=review`}
+                        href={`/order/customize#step-${s.slug}`}
                         aria-label={`Edit ${s.reviewLabel}`}
                         className="self-center rounded-full border border-white/30 bg-mf-blue px-3 py-1.5 text-xs font-bold text-white shadow-blue transition-transform hover:-translate-y-px"
                       >

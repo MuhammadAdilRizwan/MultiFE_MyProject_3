@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { unstable_rethrow } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { HeadingRule } from "@/components/ui/heading";
 import { listSuppliersForAdmin, type AdminSupplier } from "@/lib/admin-catalog";
@@ -11,6 +12,8 @@ export default async function StoresPage() {
   try {
     suppliers = await listSuppliersForAdmin();
   } catch (error) {
+    // Let Next's own control-flow errors (dynamic rendering, redirects) through.
+    unstable_rethrow(error);
     console.error("listSuppliersForAdmin failed:", error instanceof Error ? error.message : error);
   }
 

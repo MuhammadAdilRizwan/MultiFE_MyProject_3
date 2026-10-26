@@ -4,9 +4,8 @@ import { SectionHeading } from "@/components/ui/heading";
 const steps = [
   {
     number: "01",
-    title: "Pick your fabric",
-    description:
-      "Browse fabric from our partner brands with live price and stock, so you always know what's actually available.",
+    title: "Choose an outlet",
+    description: "Pick a shop you love from the MultiFe network and browse fabric from our partner brands.",
     icon: <SwatchIcon />,
   },
   {

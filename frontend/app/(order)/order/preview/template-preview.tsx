@@ -60,7 +60,7 @@ export function TemplatePreview() {
             </main>
             <ActionBar backHref="/order/template" backLabel="Choose another template">
               <Link
-                href={steps.length > 0 ? `/order/customize/${steps[0].slug}` : "/order/review"}
+                href={steps.length > 0 ? "/order/customize" : "/order/review"}
                 className={`${buttonClasses("primary")} w-full`}
               >
                 {steps.length > 0 ? "Customize This Template" : "Continue to Review"}
