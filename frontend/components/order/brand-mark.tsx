@@ -1,7 +1,7 @@
 import Image from "next/image";
 
-// Store logo: the uploaded logo once the backend provides one, otherwise the
-// brand's initial on a white tile (same footprint, so cards don't shift later).
+// Store logo (a square tile, suppliers.logo_url), otherwise the brand's
+// initial on a white tile (same footprint, so cards don't shift).
 export function BrandLogo({
   name,
   logoUrl,
@@ -36,7 +36,7 @@ export function BrandBanner({
   return (
     <div className={`relative overflow-hidden bg-mf-blue ${className}`}>
       {bannerUrl ? (
-        <Image src={bannerUrl} alt="" fill sizes="(min-width: 1024px) 1200px, 100vw" className="object-cover" />
+        <Image src={bannerUrl} alt="" fill sizes="(min-width: 1024px) 1200px, 100vw" className="object-cover object-[50%_30%]" />
       ) : (
         <div
           aria-hidden="true"

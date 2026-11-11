@@ -24,7 +24,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
       <main className="flex-1">
         <section className="mx-auto max-w-6xl px-4 pt-6 sm:px-6 lg:px-8">
           <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-card">
-            <BrandBanner bannerUrl={null} className="h-28 sm:h-40" />
+            <BrandBanner bannerUrl={brand.bannerUrl} className="h-36 sm:h-56" />
             <div className="flex flex-col gap-4 px-5 pb-6 sm:flex-row sm:items-end sm:justify-between sm:px-8">
               <div className="flex items-end gap-4">
                 <BrandLogo name={brand.name} logoUrl={brand.logoUrl} className="-mt-10 h-20 w-20 sm:-mt-12 sm:h-24 sm:w-24" />

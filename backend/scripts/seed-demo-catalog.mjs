@@ -3,8 +3,8 @@
 //      keyed exactly like frontend/lib/customization.ts;
 //   2. seven dress templates with their offered options, extras, measurement
 //      fields and yardage formulas;
-//   3. eight demo brands, each with six fabrics, a photo per fabric and the
-//      options that fabric supports.
+//   3. eight demo brands (logo + banner), each with six fabrics, a photo per
+//      fabric and the options that fabric supports.
 //
 // PLACEHOLDER DATA — agreed with the client until real store APIs exist.
 // Idempotent: upserts on natural keys, safe to re-run. Any non-demo fabric
@@ -22,6 +22,8 @@ import {
   DEMO_PREFIX,
   OPTION_EXTRAS,
   TEMPLATES,
+  brandBannerPath,
+  brandLogoPath,
   fabricImagePath,
   supportedOptionsFor,
   vocabulary,
@@ -119,7 +121,17 @@ async function seedBrands() {
   for (const brand of BRANDS) {
     const { data: supplier, error } = await admin
       .from("suppliers")
-      .upsert({ slug: brand.slug, name: brand.name, status: "active", brand_color: brand.color }, { onConflict: "slug" })
+      .upsert(
+        {
+          slug: brand.slug,
+          name: brand.name,
+          status: "active",
+          brand_color: brand.color,
+          logo_url: brandLogoPath(brand.slug),
+          banner_url: brandBannerPath(brand.slug),
+        },
+        { onConflict: "slug" },
+      )
       .select("id")
       .single();
     check(error, `brand ${brand.slug}`);

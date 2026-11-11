@@ -219,7 +219,7 @@ describe("listStoreFabricsAction", () => {
 });
 
 describe("getOrderContextAction", () => {
-  const brand = { id: "s1", name: "Khadi", slug: "khadi", logoUrl: null, brandColor: null };
+  const brand = { id: "s1", name: "Khadi", slug: "khadi", logoUrl: null, bannerUrl: null, brandColor: null };
   const fabricId = "123e4567-e89b-12d3-a456-426614174000";
   const templateId = "223e4567-e89b-12d3-a456-426614174000";
   const fabric = { id: fabricId, supplier_id: "s1", is_available: true, is_hidden: false, supported_options: { neckline: ["round"] }, images: [] };

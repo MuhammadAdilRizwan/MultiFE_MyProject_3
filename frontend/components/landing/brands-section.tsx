@@ -56,7 +56,7 @@ function StoreCard({ brand, leadTime }: { brand: StorefrontBrand; leadTime: stri
       href={`/s/${brand.slug}`}
       className="group block overflow-hidden rounded-3xl border border-line bg-white shadow-card transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(16,35,63,0.12)] focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-bright/30"
     >
-      <BrandBanner bannerUrl={null} className="h-24" />
+      <BrandBanner bannerUrl={brand.bannerUrl} className="h-32" />
       <div className="px-5 pb-5">
         <BrandLogo name={brand.name} logoUrl={brand.logoUrl} className="-mt-9 h-[72px] w-[72px]" />
         <h3 className="mt-3 text-xl font-extrabold tracking-tight text-ink">{brand.name}</h3>

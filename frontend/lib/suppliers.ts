@@ -5,6 +5,7 @@ export type ActiveBrand = {
   name: string;
   slug: string;
   logoUrl: string | null;
+  bannerUrl: string | null;
   brandColor: string | null;
 };
 
@@ -16,7 +17,7 @@ export async function listActiveBrands(): Promise<ActiveBrand[]> {
 
   const { data, error } = await supabase
     .from("suppliers")
-    .select("id, name, slug, logo_url, brand_color")
+    .select("id, name, slug, logo_url, banner_url, brand_color")
     .eq("status", "active")
     .order("name", { ascending: true });
 
@@ -30,6 +31,7 @@ export async function listActiveBrands(): Promise<ActiveBrand[]> {
     name: row.name,
     slug: row.slug,
     logoUrl: row.logo_url,
+    bannerUrl: row.banner_url,
     brandColor: row.brand_color,
   }));
 }
@@ -41,7 +43,7 @@ export async function getActiveBrandBySlug(slug: string): Promise<ActiveBrand | 
 
   const { data, error } = await supabase
     .from("suppliers")
-    .select("id, name, slug, logo_url, brand_color")
+    .select("id, name, slug, logo_url, banner_url, brand_color")
     .eq("slug", slug)
     .eq("status", "active")
     .maybeSingle();
@@ -52,7 +54,7 @@ export async function getActiveBrandBySlug(slug: string): Promise<ActiveBrand | 
   }
   if (!data) return null;
 
-  return { id: data.id, name: data.name, slug: data.slug, logoUrl: data.logo_url, brandColor: data.brand_color };
+  return { id: data.id, name: data.name, slug: data.slug, logoUrl: data.logo_url, bannerUrl: data.banner_url, brandColor: data.brand_color };
 }
 
 export type StorefrontBrand = ActiveBrand & { fabricNames: string[] };

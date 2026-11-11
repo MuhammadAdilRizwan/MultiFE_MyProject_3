@@ -191,7 +191,8 @@ export const FABRIC_LIMITS = {
 };
 
 // ---------------------------------------------------------------------------
-// Brands and their fabrics. image: [source swatch in /public/fabrics, tint]
+// Brands and their fabrics (the "khadi" slug is kept from the first fixture;
+// the brand is Khaadi). image: [source swatch in /public/fabrics, tint]
 // (tint null = the original colour).
 // ---------------------------------------------------------------------------
 
@@ -202,7 +203,7 @@ const f = (code, name, composition, fibre, weight, drape, opacity, price, stock,
 
 export const BRANDS = [
   {
-    slug: "khadi", name: "Khadi", color: "#8B5E3C",
+    slug: "khadi", name: "Khaadi", color: "#8B5E3C",
     fabrics: [
       f("KH-01", "Handloom Khaddar, Rust", "100% cotton khaddar", "khaddar", "heavy", "structured", "opaque", 1150, 180, ["cotton", "#B5562E"], "heavy"),
       f("KH-02", "Handloom Khaddar, Indigo", "100% cotton khaddar", "khaddar", "heavy", "structured", "opaque", 1150, 160, ["cotton", "#2E4A7D"], "heavy"),
@@ -292,6 +293,12 @@ export const BRANDS = [
 ];
 
 export const fabricImagePath = (code) => `/fabrics/demo/${code.toLowerCase()}.webp`;
+
+// Brand logo (square tile) and banner, from each brand's own website, in
+// frontend/public/brands/<slug>/. Trademarks of their owners — demo use only;
+// get the brands' permission (or their own assets via the API) before launch.
+export const brandLogoPath = (slug) => `/brands/${slug}/logo.webp`;
+export const brandBannerPath = (slug) => `/brands/${slug}/banner.webp`;
 
 // supported_options for a demo fabric: the full vocabulary minus its limits.
 export function supportedOptionsFor(limitsKey) {
