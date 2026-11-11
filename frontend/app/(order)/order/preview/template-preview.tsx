@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { DELIVERY_DAYS } from "@multife/backend/modules/rules/orderSummary";
 import { ActionBar, ArrowIcon } from "@/components/order/action-bar";
 import { OrderGate } from "@/components/order/order-gate";
 import { OrderTopBar } from "@/components/order/order-top-bar";
@@ -19,7 +20,7 @@ export function TemplatePreview() {
         const facts: [string, string][] = [
           ["Fabric", fabricName(fabric)],
           ["Stitching", formatPKR(t.base_stitch_price)],
-          ["Made in", `${t.lead_days} days`],
+          ["Delivered in", `${DELIVERY_DAYS} days`],
           ["Estimated from", estimate ? formatPKR(estimate.total) : "After measurements"],
         ];
         const areas = steps.map((s) => s.reviewLabel.toLowerCase());

@@ -6,7 +6,7 @@ import { saveConfirmedMeasurements } from "@multife/backend/modules/measurements
 import { placeCodOrder } from "@multife/backend/modules/orders/placeCodOrder";
 import { takeSoftReservation } from "@multife/backend/modules/orders/takeSoftReservation";
 import { isSelectionSupported } from "@multife/backend/modules/rules/isSelectionSupported";
-import { estimateLeadDays, resolveSelection, type ResolvedOption } from "@multife/backend/modules/rules/orderSummary";
+import { DELIVERY_DAYS, resolveSelection, type ResolvedOption } from "@multife/backend/modules/rules/orderSummary";
 import type { PriceBreakdown } from "@multife/backend/modules/rules/priceOrder";
 import { validateMeasurements, type MeasurementField } from "@multife/backend/modules/rules/validateMeasurements";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
@@ -169,7 +169,7 @@ export async function getCheckoutAction(input: z.infer<typeof draftSchema>): Pro
         .filter((f) => typeof values[f.key] === "number")
         .map((f) => ({ key: f.key, label: f.label, unit: f.unit, value: values[f.key] })),
       options: resolveSelection(ctx.evaluatedOptions, ctx.draft.options),
-      estDeliveryDate: addDays(estimateLeadDays(ctx.template.lead_days, ctx.evaluatedOptions, ctx.draft.options)),
+      estDeliveryDate: addDays(DELIVERY_DAYS),
       contact: { fullName: actor.full_name ?? "", phone: actor.phone ?? "" },
     });
   } catch (error) {
@@ -192,7 +192,7 @@ const placeOrderSchema = z.object({
 });
 
 // Places the order, cash on delivery (agreed until a gateway is chosen).
-// Price, yardage, lead time and the option snapshot are all recomputed here
+// Price, yardage and the option snapshot are all recomputed here
 // from the server's own read of the catalogue (FR-TPL-09, SDS §12.4).
 export async function placeOrderAction(
   input: z.infer<typeof placeOrderSchema>,
@@ -215,7 +215,7 @@ export async function placeOrderAction(
       draftId: ctx.draft.id,
       customerId: actorId,
       pricing: ctx.pricing,
-      leadDays: estimateLeadDays(ctx.template.lead_days, ctx.evaluatedOptions, ctx.draft.options),
+      leadDays: DELIVERY_DAYS,
       options: resolveSelection(ctx.evaluatedOptions, ctx.draft.options),
       delivery: {
         full_name: delivery.fullName,

@@ -60,24 +60,25 @@ const BOTTOM_GROUPS = [
 const DUPATTA_GROUPS = ["dupatta-style", "dupatta-length", "dupatta-border"];
 
 // Style extras: what a value adds to the price (PKR) and to the lead time
-// (days). Applies on every template that offers the value.
+// (days — 0 everywhere: every outfit is delivered in 14 days, client decision
+// 2026-11-11). Applies on every template that offers the value.
 export const OPTION_EXTRAS = {
-  "neck-finish": { "embroidered-front": [600, 1] },
-  "decorative-style": { embroidered: [500, 1], "panel-detail": [300, 0] },
-  "forearm-detail": { "embroidered-panel": [400, 1] },
+  "neck-finish": { "embroidered-front": [600, 0] },
+  "decorative-style": { embroidered: [500, 0], "panel-detail": [300, 0] },
+  "forearm-detail": { "embroidered-panel": [400, 0] },
   "cuff-style": { "embroidered-cuff": [350, 0], "lace-trim-cuff": [300, 0] },
-  "edge-finish": { "beaded-finish": [450, 1] },
-  "sleeve-finish": { embroidered: [400, 1], "lace-detail": [300, 0] },
-  "body-shape": { anarkali: [1200, 2], angrakha: [900, 1], kalidar: [1000, 2] },
-  "finishing-detail": { "minimal-embroidery": [700, 1], "festive-embroidery": [1800, 3], "full-border-set": [1500, 2] },
-  "lace-style": { elegant: [300, 0], festive: [600, 1] },
-  "bottom-wear-type": { gharara: [1500, 2], sharara: [1500, 2], "lehenga-skirt": [2000, 2] },
-  "lower-edge-finish": { "embroidered-edge": [400, 1], "lace-edge": [300, 0] },
+  "edge-finish": { "beaded-finish": [450, 0] },
+  "sleeve-finish": { embroidered: [400, 0], "lace-detail": [300, 0] },
+  "body-shape": { anarkali: [1200, 0], angrakha: [900, 0], kalidar: [1000, 0] },
+  "finishing-detail": { "minimal-embroidery": [700, 0], "festive-embroidery": [1800, 0], "full-border-set": [1500, 0] },
+  "lace-style": { elegant: [300, 0], festive: [600, 0] },
+  "bottom-wear-type": { gharara: [1500, 0], sharara: [1500, 0], "lehenga-skirt": [2000, 0] },
+  "lower-edge-finish": { "embroidered-edge": [400, 0], "lace-edge": [300, 0] },
   "dupatta-style": {
     "chiffon-dupatta": [500, 0], "net-dupatta": [700, 0], "organza-dupatta": [900, 0],
-    "banarsi-dupatta": [1800, 2], "embroidered-dupatta": [1500, 2],
+    "banarsi-dupatta": [1800, 0], "embroidered-dupatta": [1500, 0],
   },
-  "dupatta-border": { tassels: [250, 0], "lace-border": [400, 0], "embroidered-border": [700, 1], "gota-detail": [600, 1] },
+  "dupatta-border": { tassels: [250, 0], "lace-border": [400, 0], "embroidered-border": [700, 0], "gota-detail": [600, 0] },
 };
 
 // Yardage (SDS §6.2): base + coefficient × measurement (cm), plus a flat
@@ -90,7 +91,7 @@ const BOTTOM_STYLES = { gharara: 1.5, sharara: 1.5, "lehenga-skirt": 2, palazzo:
 
 export const TEMPLATES = [
   {
-    slug: "2-piece-suit", name: "2 Piece Suit", lead_days: 10, base_stitch_price: 3200,
+    slug: "2-piece-suit", name: "2 Piece Suit", lead_days: 14, base_stitch_price: 3200,
     description: "Kameez with matching bottoms, stitched to your measurements.",
     groups: [...TOP_GROUPS, ...FIT_GROUPS, ...BOTTOM_GROUPS],
     measurements: [...TOP_MEASUREMENTS, M.shirtLength, ...BOTTOM_MEASUREMENTS],
@@ -98,7 +99,7 @@ export const TEMPLATES = [
     recommended: { "dress-length": "knee-length", "bottom-wear-type": "shalwar", "style-family": "casual" },
   },
   {
-    slug: "3-piece-suit", name: "3 Piece Suit", lead_days: 12, base_stitch_price: 4200,
+    slug: "3-piece-suit", name: "3 Piece Suit", lead_days: 14, base_stitch_price: 4200,
     description: "Kameez, bottoms and a finished dupatta — the complete festive set.",
     groups: [...TOP_GROUPS, ...FIT_GROUPS, ...BOTTOM_GROUPS, ...DUPATTA_GROUPS],
     measurements: [...TOP_MEASUREMENTS, M.shirtLength, ...BOTTOM_MEASUREMENTS],
@@ -106,7 +107,7 @@ export const TEMPLATES = [
     recommended: { "dress-length": "knee-length", "style-family": "festive" },
   },
   {
-    slug: "a-line-frock", name: "A-Line Frock", lead_days: 9, base_stitch_price: 2800,
+    slug: "a-line-frock", name: "A-Line Frock", lead_days: 14, base_stitch_price: 2800,
     description: "A fitted bodice that flares gently from the waist.",
     groups: [...TOP_GROUPS, ...FIT_GROUPS],
     measurements: [...TOP_MEASUREMENTS, M.dressLength],
@@ -114,7 +115,7 @@ export const TEMPLATES = [
     recommended: { "body-shape": "a-line", "dress-length": "mid-calf", "flare-level": "full" },
   },
   {
-    slug: "abaya", name: "Abaya", lead_days: 8, base_stitch_price: 3000,
+    slug: "abaya", name: "Abaya", lead_days: 14, base_stitch_price: 3000,
     description: "A flowing full-length abaya with your choice of sleeves and finish.",
     groups: TOP_GROUPS.filter((g) => !["neck-depth", "lace-placement", "lace-style"].includes(g)),
     measurements: [M.height, M.shoulder, M.chest, M.waist, M.hip, M.sleeve, M.armhole, M.dressLength],
@@ -122,7 +123,7 @@ export const TEMPLATES = [
     recommended: { "body-shape": "loose-fit", "dress-length": "floor-length", "fit-preference": "flowing" },
   },
   {
-    slug: "long-kurti", name: "Long Kurti", lead_days: 7, base_stitch_price: 2200,
+    slug: "long-kurti", name: "Long Kurti", lead_days: 14, base_stitch_price: 2200,
     description: "A long kurti that pairs with your own trousers or jeans.",
     groups: TOP_GROUPS,
     measurements: [...TOP_MEASUREMENTS, M.shirtLength],
@@ -130,7 +131,7 @@ export const TEMPLATES = [
     recommended: { "dress-length": "knee-length", "body-shape": "straight-cut" },
   },
   {
-    slug: "maxi-dress", name: "Maxi Dress", lead_days: 10, base_stitch_price: 3500,
+    slug: "maxi-dress", name: "Maxi Dress", lead_days: 14, base_stitch_price: 3500,
     description: "A floor-length maxi with room to choose every detail.",
     groups: [...TOP_GROUPS, ...FIT_GROUPS],
     measurements: [...TOP_MEASUREMENTS, M.dressLength],
@@ -138,7 +139,7 @@ export const TEMPLATES = [
     recommended: { "dress-length": "floor-length", "body-shape": "a-line", "fit-preference": "flowing" },
   },
   {
-    slug: "peplum-set", name: "Peplum Set", lead_days: 10, base_stitch_price: 3400,
+    slug: "peplum-set", name: "Peplum Set", lead_days: 14, base_stitch_price: 3400,
     description: "A peplum top with matching bottoms.",
     groups: [...TOP_GROUPS, ...FIT_GROUPS, ...BOTTOM_GROUPS],
     measurements: [...TOP_MEASUREMENTS, M.shirtLength, ...BOTTOM_MEASUREMENTS],

@@ -13,9 +13,10 @@ export async function SiteHeader() {
         <Logo />
 
         <nav className="hidden items-center gap-8 text-sm font-semibold text-muted lg:flex" aria-label="Primary">
-          <Link className="transition-colors hover:text-ocean" href="/#why-multife">Why MultiFe</Link>
-          <Link className="transition-colors hover:text-ocean" href="/#how-it-works">How it works</Link>
-          <Link className="transition-colors hover:text-ocean" href="/#brands">Brands</Link>
+          {/* The intro sections only exist for guests ("/" sends signed-in users to /brands). */}
+          {!profile && <Link className="transition-colors hover:text-ocean" href="/#why-multife">Why MultiFe</Link>}
+          {!profile && <Link className="transition-colors hover:text-ocean" href="/#how-it-works">How it works</Link>}
+          <Link className="transition-colors hover:text-ocean" href="/brands">Brands</Link>
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -51,7 +52,7 @@ export async function SiteHeader() {
                 Sign in
               </Link>
               <Link
-                href="/#brands"
+                href="/brands"
                 className="hidden h-11 items-center justify-center rounded-full border border-white/30 bg-mf-blue px-5 text-sm font-semibold text-white shadow-blue transition-transform duration-200 hover:-translate-y-px sm:inline-flex"
               >
                 Get started

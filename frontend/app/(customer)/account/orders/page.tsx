@@ -30,7 +30,7 @@ export default async function OrdersPage() {
         <div className="mx-auto mt-10 max-w-md rounded-3xl border border-line bg-white p-8 text-center shadow-card">
           <p className="text-base font-semibold text-ink">You haven&apos;t placed an order yet.</p>
           <p className="mt-2 text-sm text-muted">Pick a brand and a fabric to design your first outfit.</p>
-          <Link href="/#brands" className={`${buttonClasses("primary")} mt-6 w-full`}>
+          <Link href="/brands" className={`${buttonClasses("primary")} mt-6 w-full`}>
             Browse brands
           </Link>
         </div>

@@ -1,9 +1,9 @@
 import type { AppRole } from "@multife/backend/modules/users/types";
 
-// Where each role lands after signing in. Panels not built yet fall back to
-// the home page rather than a dead link.
+// Where each role lands after signing in. Everyone except admins starts at
+// the brands (panels not built yet fall back there rather than a dead link).
 export function homeForRole(role: AppRole | string | null | undefined): string {
-  return role === "admin" ? "/admin" : "/";
+  return role === "admin" ? "/admin" : "/brands";
 }
 
 // Only same-site relative paths are allowed, so a crafted ?next= link can't

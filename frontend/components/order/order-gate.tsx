@@ -70,7 +70,7 @@ function StartAgain() {
     <Missing
       title="Start by choosing a fabric"
       text="Pick a brand and a fabric first — your style choices are built on top of it."
-      href="/#brands"
+      href="/brands"
       action="Browse brands"
     />
   );

@@ -1,26 +1,9 @@
 import type { EvaluatedOptionGroup, OptionSelection } from "./types";
 
-// Days between handing a finished garment to dispatch and delivery
-// (FR-ORD-11 "dispatch allowance"). Placeholder until the courier is chosen
-// (SRS §3 Q4).
-export const DISPATCH_ALLOWANCE_DAYS = 3;
-
-// FR-ORD-11: estimated delivery = template lead time + the extra lead time
-// of every chosen option + the dispatch allowance. `evaluatedOptions` must be
-// the server's own evaluateOptions output, same rule as priceOrder.
-export function estimateLeadDays(
-  templateLeadDays: number,
-  evaluatedOptions: EvaluatedOptionGroup[],
-  selection: OptionSelection,
-): number {
-  let days = templateLeadDays + DISPATCH_ALLOWANCE_DAYS;
-  for (const [groupKey, valueKey] of Object.entries(selection)) {
-    const value = evaluatedOptions.find((g) => g.groupKey === groupKey)?.values.find((v) => v.key === valueKey);
-    if (!value) throw new Error(`Selected value "${valueKey}" for group "${groupKey}" is not supported`);
-    days += value.extraLeadDays;
-  }
-  return days;
-}
+// Every outfit is delivered DELIVERY_DAYS after the order is placed
+// (client decision, 2026-11-11) — the same for every template and option,
+// so per-template and per-option lead times don't change the promise.
+export const DELIVERY_DAYS = 14;
 
 export interface ResolvedOption {
   group: string;

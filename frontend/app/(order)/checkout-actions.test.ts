@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // The checkout Server Actions' own logic: who may act on a draft, input
 // validation, and what reaches the order function. Collaborators that touch
 // the database are mocked; the pure rules (validateMeasurements,
-// estimateLeadDays, resolveSelection, isSelectionSupported) run for real.
+// resolveSelection, isSelectionSupported) run for real.
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@multife/backend/modules/users/getActor", () => ({ getCurrentProfile: vi.fn() }));
@@ -24,7 +24,7 @@ import { getLatestConfirmedProfile } from "@multife/backend/modules/measurements
 import { saveConfirmedMeasurements } from "@multife/backend/modules/measurements/saveConfirmedMeasurements";
 import { placeCodOrder } from "@multife/backend/modules/orders/placeCodOrder";
 import { takeSoftReservation } from "@multife/backend/modules/orders/takeSoftReservation";
-import { DISPATCH_ALLOWANCE_DAYS } from "@multife/backend/modules/rules/orderSummary";
+import { DELIVERY_DAYS } from "@multife/backend/modules/rules/orderSummary";
 import {
   getCheckoutAction,
   getMeasurementStepAction,
@@ -181,12 +181,12 @@ describe("getCheckoutAction", () => {
     expect(await getCheckoutAction({ draftId })).toEqual({ ok: false, error: "Confirm your measurements first." });
   });
 
-  it("summarises price, measurements, chosen options, delivery date and contact", async () => {
+  it("summarises price, measurements, chosen options, the 14-day delivery date and contact", async () => {
     const result = await getCheckoutAction({ draftId });
     if (!result.ok) throw new Error(result.error);
 
     const expected = new Date();
-    expected.setDate(expected.getDate() + 10 + 1 + DISPATCH_ALLOWANCE_DAYS);
+    expected.setDate(expected.getDate() + DELIVERY_DAYS);
     expect(result.data).toEqual({
       pricing,
       measurements: [
@@ -229,7 +229,7 @@ describe("placeOrderAction", () => {
       draftId,
       customerId: "c1",
       pricing,
-      leadDays: 10 + 1 + DISPATCH_ALLOWANCE_DAYS,
+      leadDays: 14,
       options: [
         { group: "neck-finish", group_label: "Front / Back Finish", value: "embroidered-front", label: "Embroidered Front", price_delta: 600 },
       ],

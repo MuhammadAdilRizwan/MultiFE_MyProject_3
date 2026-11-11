@@ -92,7 +92,7 @@ export default function RegisterBrandPage() {
             ))}
           </ol>
 
-          <Link href="/#brands" className="mt-10 inline-flex text-sm font-semibold text-ocean hover:underline">
+          <Link href="/brands" className="mt-10 inline-flex text-sm font-semibold text-ocean hover:underline">
             Back to brands
           </Link>
         </section>

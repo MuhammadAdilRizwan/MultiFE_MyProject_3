@@ -1,22 +1,13 @@
 import Link from "next/link";
+import { DELIVERY_DAYS } from "@multife/backend/modules/rules/orderSummary";
 import { BrandBanner, BrandLogo } from "@/components/order/brand-mark";
 import { SectionHeading } from "@/components/ui/heading";
 import { buttonClasses } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/server";
 import { listStorefrontBrands, type StorefrontBrand } from "@/lib/suppliers";
 
-// Real lead-time range from the published templates in the database.
-async function leadTimeRange(): Promise<string | null> {
-  const supabase = await createClient();
-  const { data } = await supabase.from("dress_templates").select("lead_days").eq("is_published", true);
-  if (!data?.length) return null;
-  const days = data.map((r) => r.lead_days as number);
-  const [min, max] = [Math.min(...days), Math.max(...days)];
-  return min === max ? `${min} days` : `${min}–${max} days`;
-}
-
 export async function BrandsSection() {
-  const [brands, leadTime] = await Promise.all([listStorefrontBrands(), leadTimeRange()]);
+  const brands = await listStorefrontBrands();
+  const leadTime = `${DELIVERY_DAYS} days`;
 
   return (
     <section id="brands" className="scroll-mt-20 py-20 sm:py-24">

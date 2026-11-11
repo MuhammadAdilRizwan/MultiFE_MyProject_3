@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DISPATCH_ALLOWANCE_DAYS, estimateLeadDays, resolveSelection } from "./orderSummary";
+import { DELIVERY_DAYS, resolveSelection } from "./orderSummary";
 import type { EvaluatedOptionGroup } from "./types";
 
 const options: EvaluatedOptionGroup[] = [
@@ -21,19 +21,9 @@ const options: EvaluatedOptionGroup[] = [
   },
 ];
 
-describe("estimateLeadDays", () => {
-  it("adds the dispatch allowance to the template lead time", () => {
-    expect(estimateLeadDays(10, options, { neckline: "round-neck" })).toBe(10 + DISPATCH_ALLOWANCE_DAYS);
-  });
-
-  it("adds each chosen option's extra lead days", () => {
-    expect(estimateLeadDays(10, options, { neckline: "keyhole", "finishing-detail": "festive-embroidery" })).toBe(
-      10 + 3 + DISPATCH_ALLOWANCE_DAYS,
-    );
-  });
-
-  it("rejects a value the fabric/template doesn't offer", () => {
-    expect(() => estimateLeadDays(10, options, { neckline: "boat-neck" })).toThrow(/not supported/);
+describe("DELIVERY_DAYS", () => {
+  it("is 14 days for every outfit", () => {
+    expect(DELIVERY_DAYS).toBe(14);
   });
 });
 

@@ -20,7 +20,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <OrderTopBar backHref="/#brands" backLabel="Back to brands" />
+      <OrderTopBar backHref="/brands" backLabel="Back to brands" />
       <main className="flex-1">
         <section className="mx-auto max-w-6xl px-4 pt-6 sm:px-6 lg:px-8">
           <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-card">

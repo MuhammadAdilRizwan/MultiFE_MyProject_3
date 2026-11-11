@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { DELIVERY_DAYS } from "@multife/backend/modules/rules/orderSummary";
 import type { TemplateRow } from "@multife/backend/modules/catalog/types";
 import { listCompatibleTemplatesForFabricAction } from "@/app/(storefront)/catalog-actions";
 import { ActionBar, ArrowIcon } from "@/components/order/action-bar";
@@ -99,7 +100,7 @@ function Library({ ctx }: { ctx: OrderContext }) {
                         {t.description && <span className="mt-0.5 line-clamp-2 block text-xs text-muted">{t.description}</span>}
                         <span className="mt-1.5 block text-xs font-semibold text-ocean">
                           {estimate ? `From ${formatPKR(estimate.total)}` : `Stitching ${formatPKR(t.base_stitch_price)}`}
-                          {` · ${t.lead_days} days`}
+                          {` · ${DELIVERY_DAYS} days`}
                         </span>
                       </span>
                     </button>
