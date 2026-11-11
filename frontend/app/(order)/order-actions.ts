@@ -3,85 +3,22 @@
 import { z } from "zod";
 import { getFabric } from "@multife/backend/modules/catalog/getFabric";
 import { getTemplate } from "@multife/backend/modules/catalog/getTemplate";
-import type { TemplateOptionRow } from "@multife/backend/modules/catalog/types";
 import { createDraft } from "@multife/backend/modules/orders/createDraft";
 import { getDraft } from "@multife/backend/modules/orders/getDraft";
 import { takeSoftReservation } from "@multife/backend/modules/orders/takeSoftReservation";
 import { updateDraftOptions } from "@multife/backend/modules/orders/updateDraftOptions";
-import type { AnySupabaseClient, OrderDraftRow } from "@multife/backend/modules/orders/types";
-import { estimateYardage } from "@multife/backend/modules/rules/estimateYardage";
 import { evaluateOptions } from "@multife/backend/modules/rules/evaluateOptions";
+import type { PriceBreakdown } from "@multife/backend/modules/rules/priceOrder";
 import { isSelectionSupported } from "@multife/backend/modules/rules/isSelectionSupported";
 import { isTemplateCompatibleWithFabric } from "@multife/backend/modules/rules/isTemplateCompatibleWithFabric";
-import { priceOrder, type PriceBreakdown } from "@multife/backend/modules/rules/priceOrder";
-import type { TemplateOptionInput } from "@multife/backend/modules/rules/types";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
-import { nominalMeasurements } from "@/lib/catalog";
 import { describeError } from "@/lib/describe-error";
+import { isActionResult, loadAndPriceDraft, toTemplateOptionInputs } from "@/lib/draft-pricing";
 import { createClient } from "@/lib/supabase/server";
 
 // Composes already-tested backend modules (catalog + rules + orders) — no
 // business logic of its own, same convention as (storefront)/catalog-actions.ts.
-
-function toTemplateOptionInputs(options: TemplateOptionRow[]): TemplateOptionInput[] {
-  return options.map((option) => ({
-    groupKey: option.group.key,
-    groupLabel: option.group.label,
-    valueKey: option.value.key,
-    valueLabel: option.value.label,
-    priceDelta: option.price_delta,
-    extraLeadDays: option.extra_lead_days,
-    isDefault: option.is_default,
-  }));
-}
-
-interface LoadedDraftContext {
-  draft: OrderDraftRow;
-  evaluatedOptions: ReturnType<typeof evaluateOptions>;
-  yardageMetres: number;
-  pricing: PriceBreakdown;
-}
-
-// Shared by priceDraftAction and takeSoftReservationAction: load the draft's
-// fabric+template, re-evaluate its option set, and price it. Never trusts a
-// previously stored price — always recomputed from the current catalogue.
-async function loadAndPriceDraft(
-  supabase: AnySupabaseClient,
-  draftId: string,
-): Promise<LoadedDraftContext | ActionResult<never>> {
-  const draft = await getDraft(supabase, draftId);
-  if (!draft) return fail("Draft not found.");
-  if (!draft.fabric_id || !draft.template_id) return fail("Pick a fabric and template first.");
-
-  const fabric = await getFabric(supabase, draft.fabric_id);
-  if (!fabric) return fail("Fabric not found.");
-  const template = await getTemplate(supabase, draft.template_id);
-  if (!template) return fail("Template not found.");
-
-  const evaluatedOptions = evaluateOptions(toTemplateOptionInputs(template.options), fabric.supported_options);
-
-  const yardageMetres = estimateYardage({
-    yardageFormula: template.yardage_formula,
-    measurements: nominalMeasurements(template.required_measurements),
-    selection: draft.options,
-    fabricHasDirectionalPattern: Boolean(fabric.properties?.directional_pattern),
-  });
-
-  const pricing = priceOrder({
-    fabricPricePerMetre: fabric.price_per_metre,
-    templateBaseStitchPrice: template.base_stitch_price,
-    yardageMetres,
-    evaluatedOptions,
-    selection: draft.options,
-  });
-
-  return { draft, evaluatedOptions, yardageMetres, pricing };
-}
-
-function isActionResult(value: unknown): value is ActionResult<never> {
-  return typeof value === "object" && value !== null && "ok" in value;
-}
 
 const createDraftSchema = z.object({
   fabricId: z.string().uuid(),

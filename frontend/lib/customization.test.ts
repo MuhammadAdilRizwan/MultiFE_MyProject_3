@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { EvaluatedOptionGroup } from "@multife/backend/modules/rules/types";
-import { buildSteps, selectedOption, unsupportedChoices } from "./customization";
+import demoVocabulary from "@multife/backend/supabase/seed/demo-vocabulary.json";
+import { LAYOUT_VOCABULARY, buildSteps, selectedOption, unsupportedChoices } from "./customization";
 
 const value = (key: string, label: string, isDefault = false) => ({ key, label, priceDelta: 0, extraLeadDays: 0, isDefault });
 
@@ -88,5 +89,14 @@ describe("unsupportedChoices", () => {
 
   it("flags a whole group that is gone, with no step to re-pick in", () => {
     expect(unsupportedChoices(steps, { cuff: "soft" })).toEqual([{ groupKey: "cuff", label: "soft", stepSlug: null }]);
+  });
+});
+
+describe("demo vocabulary", () => {
+  // The seeded option keys are what fabrics, templates and saved orders refer
+  // to; if they drift from the layout, options lose their pictures and land on
+  // "More details".
+  it("matches the customization layout exactly", () => {
+    expect(demoVocabulary).toEqual(LAYOUT_VOCABULARY);
   });
 });
