@@ -41,6 +41,19 @@ export async function createProvisionalCustomer(
 
   const customerId = data.user.id;
 
+  // handle_new_user runs before Supabase attaches app_metadata to the new
+  // auth user (verified on the dev project: the profile came out with
+  // is_provisional = false), so set the provisional flags on the profile
+  // explicitly — same approach as inviteUser's role update.
+  const { error: profileError } = await adminClient
+    .from("profiles")
+    .update({ is_provisional: true, provisional_created_by_id: params.agentProfileId })
+    .eq("id", customerId);
+  if (profileError) {
+    await adminClient.auth.admin.deleteUser(customerId).catch(() => {});
+    throw profileError;
+  }
+
   const { error: assignError } = await adminClient
     .from("agent_customers")
     .insert({ agent_id: params.agentId, customer_id: customerId, source: params.source ?? "agent_created" });

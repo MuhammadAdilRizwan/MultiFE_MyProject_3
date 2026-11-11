@@ -5,17 +5,30 @@ import type { AnySupabaseClient } from "./types";
 function fakeAdminClient(opts: {
   createUserResult?: { data?: unknown; error?: unknown };
   insertResult?: { data?: unknown; error?: unknown };
+  profileUpdateResult?: { error?: unknown };
 }) {
   const createUserResult = opts.createUserResult ?? { data: { user: { id: "cust-1" } }, error: null };
   const insertResult = opts.insertResult ?? { error: null };
+  const profileUpdateResult = opts.profileUpdateResult ?? { error: null };
 
-  const calls: { createUser?: unknown; insert?: unknown; deletedUserId?: string } = {};
+  const calls: {
+    createUser?: unknown;
+    insert?: unknown;
+    profileUpdate?: { values: unknown; id: unknown };
+    deletedUserId?: string;
+  } = {};
 
   const builder: Record<string, unknown> = {
     insert: (v: unknown) => {
       calls.insert = v;
       return Promise.resolve(insertResult);
     },
+    update: (values: unknown) => ({
+      eq: (_column: string, id: unknown) => {
+        calls.profileUpdate = { values, id };
+        return Promise.resolve(profileUpdateResult);
+      },
+    }),
   };
 
   const client = {
@@ -54,6 +67,31 @@ describe("createProvisionalCustomer", () => {
       user_metadata: { full_name: "Sana Khan" },
       app_metadata: { role: "customer", provisional: true, provisional_created_by_id: "agent-profile-1" },
     });
+  });
+
+  it("marks the new profile provisional and records the creating agent", async () => {
+    const { client, calls } = fakeAdminClient({});
+
+    await createProvisionalCustomer(client, {
+      phone: "+923001234567",
+      agentId: "agent-row-1",
+      agentProfileId: "agent-profile-1",
+    });
+
+    expect(calls.profileUpdate).toEqual({
+      values: { is_provisional: true, provisional_created_by_id: "agent-profile-1" },
+      id: "cust-1",
+    });
+  });
+
+  it("rolls back the auth user when the profile can't be marked provisional", async () => {
+    const { client, calls } = fakeAdminClient({ profileUpdateResult: { error: { message: "update failed" } } });
+
+    await expect(
+      createProvisionalCustomer(client, { phone: "+923001234567", agentId: "a1", agentProfileId: "p1" }),
+    ).rejects.toMatchObject({ message: "update failed" });
+    expect(calls.deletedUserId).toBe("cust-1");
+    expect(calls.insert).toBeUndefined();
   });
 
   it("assigns the new customer to the creating agent", async () => {

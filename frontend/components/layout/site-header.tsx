@@ -30,6 +30,14 @@ export async function SiteHeader() {
                   Admin
                 </Link>
               )}
+              {profile.role === "agent" && (
+                <Link
+                  href="/agent"
+                  className="inline-flex h-11 items-center rounded-full px-3 text-sm font-semibold text-ocean hover:underline"
+                >
+                  Agent panel
+                </Link>
+              )}
               {profile.role === "customer" && (
                 <Link
                   href="/account/orders"
