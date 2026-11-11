@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import type { PriceBreakdown } from "@multife/backend/modules/rules/priceOrder";
-import { priceDraftAction, takeSoftReservationAction } from "@/app/(order)/order-actions";
-import { ActionBar } from "@/components/order/action-bar";
+import { priceDraftAction } from "@/app/(order)/order-actions";
+import { ActionBar, ArrowIcon } from "@/components/order/action-bar";
 import { OrderGate, type OrderContext } from "@/components/order/order-gate";
 import { OrderTopBar } from "@/components/order/order-top-bar";
 import { PageTitle } from "@/components/order/page-title";
@@ -71,25 +72,7 @@ function Review({ ctx }: { ctx: OrderContext }) {
 
   const price = server.status === "ready" ? server.price : toRepick.length === 0 ? estimateOrderFrom(t, fabric, ctx.options, selection) : null;
 
-  const [reserving, startReserving] = useTransition();
-  const [reserveError, setReserveError] = useState<string | null>(null);
-  const [heldUntil, setHeldUntil] = useState<string | null>(null);
-  function reserve() {
-    if (server.status !== "ready") return;
-    setReserveError(null);
-    startReserving(async () => {
-      const result = await takeSoftReservationAction({ draftId: server.draftId });
-      if (!result.ok) {
-        setReserveError(result.error);
-        return;
-      }
-      setHeldUntil(
-        result.data.expires_at
-          ? new Date(result.data.expires_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-          : "",
-      );
-    });
-  }
+  const router = useRouter();
   const name = fabricName(fabric);
   const preview = templateImage(t.slug) ?? fabric.images[0]?.url ?? null;
   const lastHref = steps.length > 0 ? "/order/customize" : "/order/preview";
@@ -101,7 +84,7 @@ function Review({ ctx }: { ctx: OrderContext }) {
         <div className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:px-6 lg:px-8">
           <PageTitle
             title="Final Customization Review"
-            subtitle="Preview the selected fabric and outfit details before saving."
+            subtitle="Preview the selected fabric and outfit details before adding your measurements."
           />
 
           {(removed.length > 0 || toRepick.length > 0) && (
@@ -171,7 +154,7 @@ function Review({ ctx }: { ctx: OrderContext }) {
                     <dd className="text-base font-extrabold text-ocean">{formatPKR(price.total)}</dd>
                   </div>
                   <p className="pb-4 text-xs leading-5 text-hint">
-                    Based on a standard size. The final price is recalculated from your measurements before you pay.
+                    Based on a standard size. The final price is recalculated from your measurements at checkout.
                   </p>
                 </dl>
               ) : (
@@ -236,44 +219,38 @@ function Review({ ctx }: { ctx: OrderContext }) {
       </main>
       <ActionBar backHref={lastHref}>
         {!isCustomer ? (
-          // FR-CUS-02: signing in is what saves the order to an account.
+          // FR-CUS-02: sign-in is required from the measurement step on.
           <>
             <p className="mb-2 text-center text-sm text-muted">
-              Sign in with your customer account to save this design and reserve your fabric.
+              Sign in with your customer account to add your measurements and place your order.
             </p>
             {toRepick.length > 0 ? (
               <button type="button" disabled className={`${buttonClasses("primary")} w-full`}>
-                Sign in to save
+                Sign in to continue
               </button>
             ) : (
               <Link href="/sign-in?next=/order/review" className={`${buttonClasses("primary")} w-full`}>
-                Sign in to save
+                Sign in to continue
               </Link>
             )}
           </>
-        ) : heldUntil !== null ? (
-          <div className="w-full">
-            <Alert tone="success">
-              Your design is saved to your account and {price ? formatMetres(price.yardageMetres) : "your fabric"} of{" "}
-              {name} is held for you{heldUntil ? ` until ${heldUntil}` : ""}. Measurements and checkout come next.
-            </Alert>
-          </div>
         ) : (
           <>
-            {(server.status === "error" || reserveError) && (
+            {server.status === "error" && (
               <div className="mb-2 w-full">
-                <Alert tone="danger">{reserveError ?? (server.status === "error" ? server.error : "")}</Alert>
+                <Alert tone="danger">{server.error}</Alert>
               </div>
             )}
             <Button
               type="button"
-              onClick={reserve}
+              onClick={() => router.push("/order/measurements")}
               disabled={toRepick.length > 0 || server.status !== "ready"}
-              pending={reserving || (server.status === "loading" && toRepick.length === 0)}
-              pendingLabel={reserving ? "Reserving…" : "Saving your design…"}
+              pending={server.status === "loading" && toRepick.length === 0}
+              pendingLabel="Saving your design…"
               className="w-full"
             >
-              Save &amp; reserve my fabric
+              Continue to measurements
+              <ArrowIcon />
             </Button>
           </>
         )}

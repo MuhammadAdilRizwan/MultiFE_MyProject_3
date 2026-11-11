@@ -61,8 +61,8 @@ export async function middleware(request: NextRequest) {
   if (!guard) return response;
 
   if (!user) {
-    const signIn = new URL("/auth/sign-in", request.url);
-    signIn.searchParams.set("redirect", request.nextUrl.pathname);
+    const signIn = new URL("/sign-in", request.url);
+    signIn.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(signIn);
   }
 
@@ -76,7 +76,7 @@ export async function middleware(request: NextRequest) {
   // let a stale/blocked account linger on a protected panel.
   if (!profile || profile.status === "suspended") {
     await supabase.auth.signOut();
-    return NextResponse.redirect(new URL("/auth/sign-in", request.url));
+    return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
   if (!guard.roles.includes(profile.role as AppRole)) {

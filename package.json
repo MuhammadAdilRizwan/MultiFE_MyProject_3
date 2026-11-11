@@ -10,6 +10,7 @@
     "db:check": "npm run db:check -w @multife/backend",
     "create-admin": "npm run create-admin -w @multife/backend --",
     "seed:catalog": "npm run seed:catalog -w @multife/backend",
+    "seed:demo": "npm run seed:demo -w @multife/backend",
     "test:auth": "npm run test:auth -w @multife/backend",
     "test": "npm run test -w @multife/backend && npm run test -w frontend",
     "test:rls": "npm run test:rls -w @multife/backend"

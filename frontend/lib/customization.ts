@@ -266,6 +266,18 @@ const LAYOUT: Step[] = [
   },
 ];
 
+// The layout's groups and values as option_groups / option_values keys, in
+// order. backend/supabase/seed/demo-vocabulary.json (seeded by
+// `npm run seed:demo`) must match this exactly — customization.test.ts checks.
+export const LAYOUT_VOCABULARY = LAYOUT.flatMap((step) =>
+  step.groups.map((g) => ({
+    key: g.id,
+    label: g.title,
+    defaultKey: g.defaultId,
+    values: g.options.map((o) => ({ key: o.id, label: o.label })),
+  })),
+);
+
 // Offered groups the layout doesn't place yet (e.g. a new group in the
 // vocabulary) still reach the customer, on one closing step.
 const EXTRA_STEP = {

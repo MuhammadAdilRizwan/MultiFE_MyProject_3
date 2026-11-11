@@ -29,6 +29,14 @@ export async function SiteHeader() {
                   Admin
                 </Link>
               )}
+              {profile.role === "customer" && (
+                <Link
+                  href="/account/orders"
+                  className="inline-flex h-11 items-center rounded-full px-3 text-sm font-semibold text-ocean hover:underline"
+                >
+                  My orders
+                </Link>
+              )}
               <span className="hidden max-w-[10rem] truncate text-sm text-muted md:inline">
                 {profile.full_name ?? profile.email}
               </span>

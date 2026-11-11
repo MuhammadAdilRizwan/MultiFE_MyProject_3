@@ -1,0 +1,1023 @@
+[
+  {
+    "key": "neckline",
+    "label": "Neckline",
+    "defaultKey": "round-neck",
+    "values": [
+      {
+        "key": "round-neck",
+        "label": "Round Neck"
+      },
+      {
+        "key": "v-neck",
+        "label": "V-Neck"
+      },
+      {
+        "key": "boat-neck",
+        "label": "Boat Neck"
+      },
+      {
+        "key": "square-neck",
+        "label": "Square Neck"
+      },
+      {
+        "key": "mandarin-collar",
+        "label": "Mandarin Collar"
+      },
+      {
+        "key": "jewel-neck",
+        "label": "Jewel Neck"
+      },
+      {
+        "key": "keyhole",
+        "label": "Keyhole"
+      },
+      {
+        "key": "scoop-neck",
+        "label": "Scoop Neck"
+      }
+    ]
+  },
+  {
+    "key": "neck-depth",
+    "label": "Neck Depth",
+    "defaultKey": "standard",
+    "values": [
+      {
+        "key": "shallow",
+        "label": "Shallow"
+      },
+      {
+        "key": "standard",
+        "label": "Standard"
+      },
+      {
+        "key": "deep",
+        "label": "Deep"
+      }
+    ]
+  },
+  {
+    "key": "neck-finish",
+    "label": "Front / Back Finish",
+    "defaultKey": "closed-back",
+    "values": [
+      {
+        "key": "plain-front",
+        "label": "Plain Front"
+      },
+      {
+        "key": "embroidered-front",
+        "label": "Embroidered Front"
+      },
+      {
+        "key": "closed-back",
+        "label": "Closed Back"
+      },
+      {
+        "key": "keyhole-back",
+        "label": "Keyhole Back"
+      }
+    ]
+  },
+  {
+    "key": "shoulder-style",
+    "label": "Shoulder Style",
+    "defaultKey": "standard-shoulder",
+    "values": [
+      {
+        "key": "standard-shoulder",
+        "label": "Standard Shoulder"
+      },
+      {
+        "key": "relaxed-shoulder",
+        "label": "Relaxed Shoulder"
+      },
+      {
+        "key": "structured-shoulder",
+        "label": "Structured Shoulder"
+      },
+      {
+        "key": "dropped-shoulder",
+        "label": "Dropped Shoulder"
+      }
+    ]
+  },
+  {
+    "key": "shoulder-width",
+    "label": "Shoulder Width",
+    "defaultKey": "standard",
+    "values": [
+      {
+        "key": "narrow",
+        "label": "Narrow"
+      },
+      {
+        "key": "standard",
+        "label": "Standard"
+      },
+      {
+        "key": "broad",
+        "label": "Broad"
+      }
+    ]
+  },
+  {
+    "key": "armhole-shape",
+    "label": "Armhole Shape",
+    "defaultKey": "comfort-fit",
+    "values": [
+      {
+        "key": "standard",
+        "label": "Standard"
+      },
+      {
+        "key": "comfort-fit",
+        "label": "Comfort Fit"
+      },
+      {
+        "key": "tailored",
+        "label": "Tailored"
+      },
+      {
+        "key": "deep-armhole",
+        "label": "Deep Armhole"
+      }
+    ]
+  },
+  {
+    "key": "upper-arm-fit",
+    "label": "Upper Arm Fit",
+    "defaultKey": "regular-fit",
+    "values": [
+      {
+        "key": "slim-fit",
+        "label": "Slim Fit"
+      },
+      {
+        "key": "regular-fit",
+        "label": "Regular Fit"
+      },
+      {
+        "key": "comfort-fit",
+        "label": "Comfort Fit"
+      },
+      {
+        "key": "relaxed-fit",
+        "label": "Relaxed Fit"
+      },
+      {
+        "key": "gathered-upper-arm",
+        "label": "Gathered Upper Arm"
+      },
+      {
+        "key": "pleated-upper-arm",
+        "label": "Pleated Upper Arm"
+      }
+    ]
+  },
+  {
+    "key": "sleeve-volume",
+    "label": "Sleeve Volume",
+    "defaultKey": "moderate",
+    "values": [
+      {
+        "key": "minimal",
+        "label": "Minimal"
+      },
+      {
+        "key": "moderate",
+        "label": "Moderate"
+      },
+      {
+        "key": "full",
+        "label": "Full"
+      }
+    ]
+  },
+  {
+    "key": "decorative-style",
+    "label": "Decorative Style",
+    "defaultKey": "plain",
+    "values": [
+      {
+        "key": "plain",
+        "label": "Plain"
+      },
+      {
+        "key": "piping",
+        "label": "Piping"
+      },
+      {
+        "key": "embroidered",
+        "label": "Embroidered"
+      },
+      {
+        "key": "panel-detail",
+        "label": "Panel Detail"
+      }
+    ]
+  },
+  {
+    "key": "forearm-shape",
+    "label": "Forearm Shape",
+    "defaultKey": "regular-forearm",
+    "values": [
+      {
+        "key": "narrow-forearm",
+        "label": "Narrow Forearm"
+      },
+      {
+        "key": "straight-forearm",
+        "label": "Straight Forearm"
+      },
+      {
+        "key": "regular-forearm",
+        "label": "Regular Forearm"
+      },
+      {
+        "key": "tapered-forearm",
+        "label": "Tapered Forearm"
+      },
+      {
+        "key": "loose-forearm",
+        "label": "Loose Forearm"
+      },
+      {
+        "key": "gathered-forearm",
+        "label": "Gathered Forearm"
+      }
+    ]
+  },
+  {
+    "key": "forearm-detail",
+    "label": "Forearm Detail",
+    "defaultKey": "plain",
+    "values": [
+      {
+        "key": "plain",
+        "label": "Plain"
+      },
+      {
+        "key": "button-tab",
+        "label": "Button Tab"
+      },
+      {
+        "key": "slit-opening",
+        "label": "Slit Opening"
+      },
+      {
+        "key": "embroidered-panel",
+        "label": "Embroidered Panel"
+      }
+    ]
+  },
+  {
+    "key": "cuff-style",
+    "label": "Cuff Style",
+    "defaultKey": "plain-hem",
+    "values": [
+      {
+        "key": "plain-hem",
+        "label": "Plain Hem"
+      },
+      {
+        "key": "narrow-cuff",
+        "label": "Narrow Cuff"
+      },
+      {
+        "key": "button-cuff",
+        "label": "Button Cuff"
+      },
+      {
+        "key": "embroidered-cuff",
+        "label": "Embroidered Cuff"
+      },
+      {
+        "key": "lace-trim-cuff",
+        "label": "Lace Trim Cuff"
+      },
+      {
+        "key": "scallop-edge",
+        "label": "Scallop Edge"
+      },
+      {
+        "key": "frill-cuff",
+        "label": "Frill Cuff"
+      },
+      {
+        "key": "loop-button-cuff",
+        "label": "Loop Button Cuff"
+      }
+    ]
+  },
+  {
+    "key": "edge-finish",
+    "label": "Edge Finish",
+    "defaultKey": "clean-fold",
+    "values": [
+      {
+        "key": "clean-fold",
+        "label": "Clean Fold"
+      },
+      {
+        "key": "piping",
+        "label": "Piping"
+      },
+      {
+        "key": "contrast-border",
+        "label": "Contrast Border"
+      },
+      {
+        "key": "beaded-finish",
+        "label": "Beaded Finish"
+      }
+    ]
+  },
+  {
+    "key": "full-sleeve-style",
+    "label": "Full Sleeve Style",
+    "defaultKey": "straight-sleeve",
+    "values": [
+      {
+        "key": "straight-sleeve",
+        "label": "Straight Sleeve"
+      },
+      {
+        "key": "bell-sleeve",
+        "label": "Bell Sleeve"
+      },
+      {
+        "key": "bishop-sleeve",
+        "label": "Bishop Sleeve"
+      },
+      {
+        "key": "puff-sleeve",
+        "label": "Puff Sleeve"
+      },
+      {
+        "key": "panel-sleeve",
+        "label": "Panel Sleeve"
+      },
+      {
+        "key": "flared-sleeve",
+        "label": "Flared Sleeve"
+      },
+      {
+        "key": "slit-sleeve",
+        "label": "Slit Sleeve"
+      },
+      {
+        "key": "umbrella-sleeve",
+        "label": "Umbrella Sleeve"
+      }
+    ]
+  },
+  {
+    "key": "sleeve-finish",
+    "label": "Sleeve Finish",
+    "defaultKey": "simple",
+    "values": [
+      {
+        "key": "simple",
+        "label": "Simple"
+      },
+      {
+        "key": "embroidered",
+        "label": "Embroidered"
+      },
+      {
+        "key": "contrast-border",
+        "label": "Contrast Border"
+      },
+      {
+        "key": "lace-detail",
+        "label": "Lace Detail"
+      }
+    ]
+  },
+  {
+    "key": "body-shape",
+    "label": "Body Shape",
+    "defaultKey": "straight-cut",
+    "values": [
+      {
+        "key": "straight-cut",
+        "label": "Straight Cut"
+      },
+      {
+        "key": "a-line",
+        "label": "A-Line"
+      },
+      {
+        "key": "semi-fitted",
+        "label": "Semi-Fitted"
+      },
+      {
+        "key": "loose-fit",
+        "label": "Loose Fit"
+      },
+      {
+        "key": "angrakha",
+        "label": "Angrakha"
+      },
+      {
+        "key": "anarkali",
+        "label": "Anarkali"
+      },
+      {
+        "key": "kalidar",
+        "label": "Kalidar"
+      },
+      {
+        "key": "peplum",
+        "label": "Peplum"
+      },
+      {
+        "key": "kaftan",
+        "label": "Kaftan"
+      },
+      {
+        "key": "frock-style",
+        "label": "Frock Style"
+      }
+    ]
+  },
+  {
+    "key": "fit-preference",
+    "label": "Fit Preference",
+    "defaultKey": "structured",
+    "values": [
+      {
+        "key": "structured",
+        "label": "Structured"
+      },
+      {
+        "key": "relaxed",
+        "label": "Relaxed"
+      },
+      {
+        "key": "flowing",
+        "label": "Flowing"
+      }
+    ]
+  },
+  {
+    "key": "flare-level",
+    "label": "Flare Level",
+    "defaultKey": "moderate",
+    "values": [
+      {
+        "key": "minimal",
+        "label": "Minimal"
+      },
+      {
+        "key": "moderate",
+        "label": "Moderate"
+      },
+      {
+        "key": "full",
+        "label": "Full"
+      }
+    ]
+  },
+  {
+    "key": "dress-length",
+    "label": "Dress Length",
+    "defaultKey": "hip-length",
+    "values": [
+      {
+        "key": "short",
+        "label": "Short"
+      },
+      {
+        "key": "hip-length",
+        "label": "Hip Length"
+      },
+      {
+        "key": "knee-length",
+        "label": "Knee Length"
+      },
+      {
+        "key": "mid-calf",
+        "label": "Mid-Calf"
+      },
+      {
+        "key": "ankle-length",
+        "label": "Ankle Length"
+      },
+      {
+        "key": "floor-length",
+        "label": "Floor Length"
+      }
+    ]
+  },
+  {
+    "key": "front-back-length",
+    "label": "Front / Back Length",
+    "defaultKey": "same-length",
+    "values": [
+      {
+        "key": "same-length",
+        "label": "Same Length"
+      },
+      {
+        "key": "slight-high-low",
+        "label": "Slight High-Low"
+      },
+      {
+        "key": "extended-back",
+        "label": "Extended Back"
+      }
+    ]
+  },
+  {
+    "key": "hem-style",
+    "label": "Hem Style",
+    "defaultKey": "straight-daman",
+    "values": [
+      {
+        "key": "straight-daman",
+        "label": "Straight Daman"
+      },
+      {
+        "key": "rounded-hem",
+        "label": "Rounded Hem"
+      },
+      {
+        "key": "high-low-hem",
+        "label": "High-Low Hem"
+      },
+      {
+        "key": "side-chaak",
+        "label": "Side Chaak"
+      },
+      {
+        "key": "double-chaak",
+        "label": "Double Chaak"
+      },
+      {
+        "key": "front-slit",
+        "label": "Front Slit"
+      },
+      {
+        "key": "scalloped-hem",
+        "label": "Scalloped Hem"
+      },
+      {
+        "key": "asymmetric-hem",
+        "label": "Asymmetric Hem"
+      }
+    ]
+  },
+  {
+    "key": "hem-width",
+    "label": "Hem Width",
+    "defaultKey": "standard",
+    "values": [
+      {
+        "key": "slim",
+        "label": "Slim"
+      },
+      {
+        "key": "standard",
+        "label": "Standard"
+      },
+      {
+        "key": "wide",
+        "label": "Wide"
+      }
+    ]
+  },
+  {
+    "key": "finishing-detail",
+    "label": "Finishing Detail",
+    "defaultKey": "neck-border",
+    "values": [
+      {
+        "key": "neck-border",
+        "label": "Neck Border"
+      },
+      {
+        "key": "sleeve-border",
+        "label": "Sleeve Border"
+      },
+      {
+        "key": "daman-border",
+        "label": "Daman Border"
+      },
+      {
+        "key": "front-patti",
+        "label": "Front Patti"
+      },
+      {
+        "key": "side-lace",
+        "label": "Side Lace"
+      },
+      {
+        "key": "minimal-embroidery",
+        "label": "Minimal Embroidery"
+      },
+      {
+        "key": "festive-embroidery",
+        "label": "Festive Embroidery"
+      },
+      {
+        "key": "full-border-set",
+        "label": "Full Border Set"
+      }
+    ]
+  },
+  {
+    "key": "lace-placement",
+    "label": "Placement",
+    "defaultKey": "neckline",
+    "values": [
+      {
+        "key": "neckline",
+        "label": "Neckline"
+      },
+      {
+        "key": "sleeves",
+        "label": "Sleeves"
+      },
+      {
+        "key": "hem",
+        "label": "Hem"
+      }
+    ]
+  },
+  {
+    "key": "lace-style",
+    "label": "Style Level",
+    "defaultKey": "minimal",
+    "values": [
+      {
+        "key": "minimal",
+        "label": "Minimal"
+      },
+      {
+        "key": "elegant",
+        "label": "Elegant"
+      },
+      {
+        "key": "festive",
+        "label": "Festive"
+      }
+    ]
+  },
+  {
+    "key": "bottom-wear-type",
+    "label": "Bottom Wear Type",
+    "defaultKey": "shalwar",
+    "values": [
+      {
+        "key": "shalwar",
+        "label": "Shalwar"
+      },
+      {
+        "key": "straight-pant",
+        "label": "Straight Pant"
+      },
+      {
+        "key": "cigarette-pant",
+        "label": "Cigarette Pant"
+      },
+      {
+        "key": "trouser",
+        "label": "Trouser"
+      },
+      {
+        "key": "palazzo",
+        "label": "Palazzo"
+      },
+      {
+        "key": "tulip-pant",
+        "label": "Tulip Pant"
+      },
+      {
+        "key": "gharara",
+        "label": "Gharara"
+      },
+      {
+        "key": "sharara",
+        "label": "Sharara"
+      },
+      {
+        "key": "lehenga-skirt",
+        "label": "Lehenga Skirt"
+      }
+    ]
+  },
+  {
+    "key": "style-family",
+    "label": "Style Family",
+    "defaultKey": "festive",
+    "values": [
+      {
+        "key": "casual",
+        "label": "Casual"
+      },
+      {
+        "key": "festive",
+        "label": "Festive"
+      },
+      {
+        "key": "formal",
+        "label": "Formal"
+      }
+    ]
+  },
+  {
+    "key": "torso-fit",
+    "label": "Torso Fit",
+    "defaultKey": "regular-fit",
+    "values": [
+      {
+        "key": "slim-fit",
+        "label": "Slim Fit"
+      },
+      {
+        "key": "regular-fit",
+        "label": "Regular Fit"
+      },
+      {
+        "key": "comfort-fit",
+        "label": "Comfort Fit"
+      },
+      {
+        "key": "relaxed-fit",
+        "label": "Relaxed Fit"
+      },
+      {
+        "key": "loose-fit",
+        "label": "Loose Fit"
+      },
+      {
+        "key": "structured-fit",
+        "label": "Structured Fit"
+      }
+    ]
+  },
+  {
+    "key": "waist-shape",
+    "label": "Waist Shape",
+    "defaultKey": "natural-waist",
+    "values": [
+      {
+        "key": "straight-waist",
+        "label": "Straight Waist"
+      },
+      {
+        "key": "natural-waist",
+        "label": "Natural Waist"
+      },
+      {
+        "key": "empire-waist",
+        "label": "Empire Waist"
+      }
+    ]
+  },
+  {
+    "key": "ease-preference",
+    "label": "Ease Preference",
+    "defaultKey": "standard-ease",
+    "values": [
+      {
+        "key": "close-ease",
+        "label": "Close Ease"
+      },
+      {
+        "key": "standard-ease",
+        "label": "Standard Ease"
+      },
+      {
+        "key": "extra-ease",
+        "label": "Extra Ease"
+      }
+    ]
+  },
+  {
+    "key": "thigh-fit",
+    "label": "Thigh Fit",
+    "defaultKey": "regular-thigh",
+    "values": [
+      {
+        "key": "slim-thigh",
+        "label": "Slim Thigh"
+      },
+      {
+        "key": "regular-thigh",
+        "label": "Regular Thigh"
+      },
+      {
+        "key": "relaxed-thigh",
+        "label": "Relaxed Thigh"
+      },
+      {
+        "key": "pleated-thigh",
+        "label": "Pleated Thigh"
+      }
+    ]
+  },
+  {
+    "key": "knee-shaping",
+    "label": "Knee Shaping",
+    "defaultKey": "straight-knee",
+    "values": [
+      {
+        "key": "straight-knee",
+        "label": "Straight Knee"
+      },
+      {
+        "key": "tapered-knee",
+        "label": "Tapered Knee"
+      },
+      {
+        "key": "flared-knee",
+        "label": "Flared Knee"
+      },
+      {
+        "key": "structured-knee",
+        "label": "Structured Knee"
+      }
+    ]
+  },
+  {
+    "key": "functional-details",
+    "label": "Functional Details",
+    "defaultKey": "side-pleat",
+    "values": [
+      {
+        "key": "side-pleat",
+        "label": "Side Pleat"
+      },
+      {
+        "key": "panel-seam",
+        "label": "Panel Seam"
+      },
+      {
+        "key": "extra-ease",
+        "label": "Extra Ease"
+      }
+    ]
+  },
+  {
+    "key": "paincha-style",
+    "label": "Paincha Style",
+    "defaultKey": "wide-paincha",
+    "values": [
+      {
+        "key": "narrow-paincha",
+        "label": "Narrow Paincha"
+      },
+      {
+        "key": "straight-paincha",
+        "label": "Straight Paincha"
+      },
+      {
+        "key": "wide-paincha",
+        "label": "Wide Paincha"
+      },
+      {
+        "key": "tapered-paincha",
+        "label": "Tapered Paincha"
+      },
+      {
+        "key": "cuffed-paincha",
+        "label": "Cuffed Paincha"
+      },
+      {
+        "key": "flared-paincha",
+        "label": "Flared Paincha"
+      }
+    ]
+  },
+  {
+    "key": "lower-edge-finish",
+    "label": "Lower Edge Finish",
+    "defaultKey": "embroidered-edge",
+    "values": [
+      {
+        "key": "plain-edge",
+        "label": "Plain Edge"
+      },
+      {
+        "key": "lace-edge",
+        "label": "Lace Edge"
+      },
+      {
+        "key": "embroidered-edge",
+        "label": "Embroidered Edge"
+      },
+      {
+        "key": "button-detail",
+        "label": "Button Detail"
+      },
+      {
+        "key": "slit-opening",
+        "label": "Slit Opening"
+      },
+      {
+        "key": "scalloped-edge",
+        "label": "Scalloped Edge"
+      }
+    ]
+  },
+  {
+    "key": "ankle-opening-width",
+    "label": "Ankle Opening Width",
+    "defaultKey": "standard",
+    "values": [
+      {
+        "key": "narrow",
+        "label": "Narrow"
+      },
+      {
+        "key": "standard",
+        "label": "Standard"
+      },
+      {
+        "key": "wide",
+        "label": "Wide"
+      }
+    ]
+  },
+  {
+    "key": "dupatta-style",
+    "label": "Dupatta Style",
+    "defaultKey": "standard-dupatta",
+    "values": [
+      {
+        "key": "standard-dupatta",
+        "label": "Standard Dupatta"
+      },
+      {
+        "key": "chiffon-dupatta",
+        "label": "Chiffon Dupatta"
+      },
+      {
+        "key": "organza-dupatta",
+        "label": "Organza Dupatta"
+      },
+      {
+        "key": "net-dupatta",
+        "label": "Net Dupatta"
+      },
+      {
+        "key": "banarsi-dupatta",
+        "label": "Banarsi Dupatta"
+      },
+      {
+        "key": "embroidered-dupatta",
+        "label": "Embroidered Dupatta"
+      }
+    ]
+  },
+  {
+    "key": "dupatta-length",
+    "label": "Dupatta Length",
+    "defaultKey": "standard",
+    "values": [
+      {
+        "key": "short",
+        "label": "Short"
+      },
+      {
+        "key": "standard",
+        "label": "Standard"
+      },
+      {
+        "key": "long",
+        "label": "Long"
+      }
+    ]
+  },
+  {
+    "key": "dupatta-border",
+    "label": "Dupatta Border / Finishing",
+    "defaultKey": "tassels",
+    "values": [
+      {
+        "key": "plain-border",
+        "label": "Plain Border"
+      },
+      {
+        "key": "lace-border",
+        "label": "Lace Border"
+      },
+      {
+        "key": "embroidered-border",
+        "label": "Embroidered Border"
+      },
+      {
+        "key": "tassels",
+        "label": "Tassels"
+      },
+      {
+        "key": "gota-detail",
+        "label": "Gota Detail"
+      }
+    ]
+  }
+]

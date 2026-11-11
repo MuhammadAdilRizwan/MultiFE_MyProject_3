@@ -104,3 +104,9 @@ export function useDraft(): Draft | null {
     () => null,
   );
 }
+
+// After the order is placed: the next order starts from scratch.
+export function clearDraft() {
+  load();
+  write(EMPTY);
+}

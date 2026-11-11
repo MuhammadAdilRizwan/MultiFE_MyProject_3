@@ -8,6 +8,7 @@
     "db:check": "node scripts/db-check.mjs",
     "create-admin": "node scripts/create-admin.mjs",
     "seed:catalog": "node scripts/seed-catalog-fixtures.mjs",
+    "seed:demo": "node scripts/seed-demo-catalog.mjs",
     "test:auth": "node tests/auth.mjs",
     "test": "vitest run",
     "test:rls": "vitest run --config vitest.rls.config.ts"
