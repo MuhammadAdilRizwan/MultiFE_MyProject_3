@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { BackLink } from "@/components/layout/back-link";
 import { PageTitle } from "@/components/order/page-title";
 import { Alert } from "@/components/ui/alert";
 import { buttonClasses } from "@/components/ui/button";
@@ -19,8 +20,11 @@ export default async function OrdersPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-      <PageTitle label="Your account" title="My Orders" subtitle="Every outfit you've ordered, and where it is now." />
+    <div className="mx-auto max-w-4xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+      <BackLink href="/brands" label="Back to brands" />
+      <div className="mt-4">
+        <PageTitle label="Your account" title="My Orders" subtitle="Every outfit you've ordered, and where it is now." />
+      </div>
 
       {orders === null ? (
         <div className="mx-auto mt-10 max-w-md">

@@ -12,44 +12,24 @@ import type { StoreFabric } from "@/app/(storefront)/catalog-actions";
 import { fabricName, fabricProperties, formatPKR } from "@/lib/catalog";
 import { startDraft, useDraft } from "@/lib/order-draft";
 
-// Filters come from the fabric properties the store's feed actually sends;
-// a filter with no values in this store isn't shown.
-const FILTER_KEYS = ["fibre", "weight", "drape"] as const;
-type FilterKey = (typeof FILTER_KEYS)[number];
-const FILTER_LABELS: Record<FilterKey, string> = { fibre: "Fibre", weight: "Weight", drape: "Drape" };
-const NO_FILTERS: Record<FilterKey, string> = { fibre: "", weight: "", drape: "" };
-
 const propertyOf = (f: StoreFabric, key: string) => fabricProperties(f).find((p) => p.key === key)?.value ?? "";
 
 export function FabricLibrary({ brandSlug, fabrics }: { brandSlug: string; fabrics: StoreFabric[] }) {
   const router = useRouter();
   const draft = useDraft();
   const [query, setQuery] = useState("");
-  const [filters, setFilters] = useState<Record<FilterKey, string>>(NO_FILTERS);
   const [picked, setPicked] = useState<string | null>(null);
 
   // Returning customers see the fabric they already chose in this store.
   const selectedId = picked ?? (draft?.brandSlug === brandSlug ? draft.fabricId : null);
 
-  const filterValues = useMemo(
-    () =>
-      FILTER_KEYS.map((key) => ({
-        key,
-        values: [...new Set(fabrics.map((f) => propertyOf(f, key)).filter(Boolean))].sort(),
-      })).filter((f) => f.values.length > 0),
-    [fabrics],
-  );
-
+  // Search by name or composition (e.g. "lawn", "silk", "cotton").
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return fabrics.filter(
-      (f) =>
-        (!q || `${fabricName(f)} ${f.composition ?? ""}`.toLowerCase().includes(q)) &&
-        FILTER_KEYS.every((key) => !filters[key] || propertyOf(f, key) === filters[key]),
-    );
-  }, [fabrics, query, filters]);
+    return fabrics.filter((f) => !q || `${fabricName(f)} ${f.composition ?? ""}`.toLowerCase().includes(q));
+  }, [fabrics, query]);
 
-  const active = Object.values(filters).some(Boolean) || query.trim() !== "";
+  const active = query.trim() !== "";
 
   function proceed() {
     if (!selectedId) return;
@@ -80,30 +60,6 @@ export function FabricLibrary({ brandSlug, fabrics }: { brandSlug: string; fabri
               className={`${inputClasses} pl-12`}
             />
           </div>
-          {filterValues.length > 0 && (
-          <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
-            {filterValues.map(({ key, values }) => (
-              <div key={key}>
-                <label htmlFor={`filter-${key}`} className="sr-only">
-                  {FILTER_LABELS[key]}
-                </label>
-                <select
-                  id={`filter-${key}`}
-                  value={filters[key]}
-                  onChange={(e) => setFilters((f) => ({ ...f, [key]: e.target.value }))}
-                  className={`${inputClasses} truncate px-3 text-sm font-semibold sm:px-4`}
-                >
-                  <option value="">{FILTER_LABELS[key]}</option>
-                  {values.map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
-          )}
         </div>
 
         {fabrics.length === 0 ? (
@@ -161,16 +117,9 @@ export function FabricLibrary({ brandSlug, fabrics }: { brandSlug: string; fabri
           </ul>
         ) : (
           <div className="mx-auto mt-10 max-w-md text-center">
-            <p className="text-base font-semibold text-ink">No fabrics match these filters.</p>
-            <button
-              type="button"
-              onClick={() => {
-                setQuery("");
-                setFilters(NO_FILTERS);
-              }}
-              className="mt-3 text-sm font-semibold text-ocean hover:underline"
-            >
-              Clear filters
+            <p className="text-base font-semibold text-ink">No fabrics match &ldquo;{query.trim()}&rdquo;.</p>
+            <button type="button" onClick={() => setQuery("")} className="mt-3 text-sm font-semibold text-ocean hover:underline">
+              Clear search
             </button>
           </div>
         )}

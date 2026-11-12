@@ -1,6 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
 import type { ReactNode } from "react";
+import { BackLink } from "@/components/layout/back-link";
 import { Alert } from "@/components/ui/alert";
 import { HeadingRule } from "@/components/ui/heading";
 import { formatMetres, formatPKR, priceAdjustmentLabel } from "@/lib/catalog";
@@ -30,10 +30,8 @@ export function OrderDetailView({
   const adjustment = Math.round((order.total - order.fabricCost - order.stitchCost - order.optionsCost) * 100) / 100;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
-      <Link href={audience === "agent" ? "/agent/orders" : "/account/orders"} className="text-sm font-semibold text-ocean hover:underline">
-        ← All orders
-      </Link>
+    <div className="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+      <BackLink href={audience === "agent" ? "/agent/orders" : "/account/orders"} label="All orders" />
 
       {placed && (
         <div className="mt-4">
