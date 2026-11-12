@@ -33,11 +33,17 @@ export async function SiteHeader() {
           {profile ? (
             <>
               {profile.role === "customer" && (
+                // The account holds orders, measurements and details, so the
+                // link is named for the whole account, not one tab.
                 <Link
                   href="/account/orders"
-                  className="inline-flex h-11 items-center rounded-full px-3 text-sm font-semibold text-ocean hover:underline"
+                  className="inline-flex h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-ocean hover:underline"
                 >
-                  My orders
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-4 w-4" aria-hidden="true">
+                    <circle cx="12" cy="8" r="3.5" />
+                    <path d="M5 20a7 7 0 0 1 14 0" />
+                  </svg>
+                  My account
                 </Link>
               )}
               <span className="hidden max-w-[10rem] truncate text-sm text-muted md:inline">
