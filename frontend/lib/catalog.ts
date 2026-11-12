@@ -95,3 +95,9 @@ export function estimateOrderFrom(
 const TEMPLATE_IMAGES = new Set(["2-piece-suit", "3-piece-suit", "a-line-frock", "abaya", "long-kurti", "maxi-dress", "peplum-set"]);
 
 export const templateImage = (slug: string) => (TEMPLATE_IMAGES.has(slug) ? `/templates/${slug}.webp` : null);
+
+// The line that keeps an outfit inside the PKR 10,000–20,000 price range
+// (rules/priceOrder ORDER_PRICE_BOUNDS): a top-up below the minimum, a
+// discount above the maximum.
+export const priceAdjustmentLabel = (adjustment: number) =>
+  adjustment > 0 ? "Minimum outfit price" : "Price cap (max PKR 20,000)";

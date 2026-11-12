@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
+import { ActingForBar } from "@/components/agent/acting-for-bar";
 import { Logo } from "@/components/brand/logo";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { createClient } from "@/lib/supabase/server";
@@ -69,6 +70,7 @@ export async function SiteHeader() {
           )}
         </div>
       </div>
+      {profile?.role === "agent" && <ActingForBar />}
     </header>
   );
 }

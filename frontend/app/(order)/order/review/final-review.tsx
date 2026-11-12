@@ -12,7 +12,7 @@ import { OrderTopBar } from "@/components/order/order-top-bar";
 import { PageTitle } from "@/components/order/page-title";
 import { Alert } from "@/components/ui/alert";
 import { Button, buttonClasses } from "@/components/ui/button";
-import { estimateOrderFrom, fabricName, formatMetres, formatPKR, templateImage } from "@/lib/catalog";
+import { estimateOrderFrom, fabricName, formatMetres, formatPKR, priceAdjustmentLabel, templateImage } from "@/lib/catalog";
 import { selectedOption, unsupportedChoices } from "@/lib/customization";
 import { dropSelections } from "@/lib/order-draft";
 import { syncRemoteOptions } from "@/lib/order-sync";
@@ -27,7 +27,7 @@ export function FinalReview() {
 }
 
 function Review({ ctx }: { ctx: OrderContext }) {
-  const { draft, brand, fabric, steps, isCustomer } = ctx;
+  const { draft, brand, fabric, steps, canSave, isAgent } = ctx;
   const t = ctx.template!;
 
   // Agreed: a choice the store stopped offering is never swapped silently.
@@ -50,7 +50,7 @@ function Review({ ctx }: { ctx: OrderContext }) {
   // Guests see the same formula computed here.
   const [server, setServer] = useState<ServerPrice>({ status: "loading" });
   useEffect(() => {
-    if (!isCustomer || toRepick.length > 0) return;
+    if (!canSave || toRepick.length > 0) return;
     let cancelled = false;
     (async () => {
       const synced = await syncRemoteOptions(JSON.parse(selectionKey));
@@ -68,7 +68,7 @@ function Review({ ctx }: { ctx: OrderContext }) {
     return () => {
       cancelled = true;
     };
-  }, [isCustomer, selectionKey, toRepick.length]);
+  }, [canSave, selectionKey, toRepick.length]);
 
   const price = server.status === "ready" ? server.price : toRepick.length === 0 ? estimateOrderFrom(t, fabric, ctx.options, selection) : null;
 
@@ -149,6 +149,15 @@ function Review({ ctx }: { ctx: OrderContext }) {
                       <dd className="font-bold text-ink">{formatPKR(price.optionsCost)}</dd>
                     </div>
                   )}
+                  {price.adjustment !== 0 && (
+                    <div className="flex items-center justify-between gap-3 py-3">
+                      <dt className="text-muted">{priceAdjustmentLabel(price.adjustment)}</dt>
+                      <dd className={`font-bold ${price.adjustment < 0 ? "text-success" : "text-ink"}`}>
+                        {price.adjustment < 0 ? "−" : "+"}
+                        {formatPKR(Math.abs(price.adjustment))}
+                      </dd>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between gap-3 py-4">
                     <dt className="font-bold text-ink">Estimated total</dt>
                     <dd className="text-base font-extrabold text-ocean">{formatPKR(price.total)}</dd>
@@ -218,7 +227,16 @@ function Review({ ctx }: { ctx: OrderContext }) {
         </div>
       </main>
       <ActionBar backHref={lastHref}>
-        {!isCustomer ? (
+        {!canSave && isAgent ? (
+          <>
+            <p className="mb-2 text-center text-sm text-muted">
+              To order for someone, start from that customer in your agent panel.
+            </p>
+            <Link href="/agent" className={`${buttonClasses("primary")} w-full`}>
+              Go to my customers
+            </Link>
+          </>
+        ) : !canSave ? (
           // FR-CUS-02: sign-in is required from the measurement step on.
           <>
             <p className="mb-2 text-center text-sm text-muted">

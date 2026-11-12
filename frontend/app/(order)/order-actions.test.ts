@@ -16,6 +16,8 @@ vi.mock("@multife/backend/modules/rules/isTemplateCompatibleWithFabric", () => (
 vi.mock("@multife/backend/modules/rules/estimateYardage", () => ({ estimateYardage: vi.fn() }));
 vi.mock("@multife/backend/modules/rules/priceOrder", () => ({ priceOrder: vi.fn() }));
 vi.mock("@multife/backend/modules/orders/createDraft", () => ({ createDraft: vi.fn() }));
+vi.mock("@multife/backend/modules/agents/getCurrentAgent", () => ({ getCurrentAgent: vi.fn() }));
+vi.mock("@multife/backend/modules/agents/getMyCustomer", () => ({ getMyCustomer: vi.fn() }));
 vi.mock("@multife/backend/modules/orders/getDraft", () => ({ getDraft: vi.fn() }));
 vi.mock("@multife/backend/modules/orders/updateDraftOptions", () => ({ updateDraftOptions: vi.fn() }));
 vi.mock("@multife/backend/modules/orders/takeSoftReservation", () => ({ takeSoftReservation: vi.fn() }));
@@ -30,6 +32,8 @@ import { isTemplateCompatibleWithFabric } from "@multife/backend/modules/rules/i
 import { estimateYardage } from "@multife/backend/modules/rules/estimateYardage";
 import { priceOrder } from "@multife/backend/modules/rules/priceOrder";
 import { createDraft } from "@multife/backend/modules/orders/createDraft";
+import { getCurrentAgent } from "@multife/backend/modules/agents/getCurrentAgent";
+import { getMyCustomer } from "@multife/backend/modules/agents/getMyCustomer";
 import { getDraft } from "@multife/backend/modules/orders/getDraft";
 import { updateDraftOptions } from "@multife/backend/modules/orders/updateDraftOptions";
 import { takeSoftReservation } from "@multife/backend/modules/orders/takeSoftReservation";
@@ -66,12 +70,38 @@ describe("createDraftAction", () => {
     expect(getFabric).not.toHaveBeenCalled();
   });
 
-  it("fails when the signed-in profile isn't an active customer", async () => {
-    vi.mocked(getCurrentProfile).mockResolvedValue({ id: "c1", role: "agent", status: "active" } as never);
+  it("fails when the signed-in profile isn't an active customer or agent", async () => {
+    vi.mocked(getCurrentProfile).mockResolvedValue({ id: "c1", role: "tailor", status: "active" } as never);
 
     const result = await createDraftAction({ fabricId, templateId });
 
     expect(result).toEqual({ ok: false, error: "Sign in as a customer to start an order." });
+  });
+
+  it("lets an agent start a draft only for one of their own customers", async () => {
+    const customerId = "523e4567-e89b-12d3-a456-426614174000";
+    vi.mocked(getCurrentProfile).mockResolvedValue({ id: "agent-p1", role: "agent", status: "active" } as never);
+    vi.mocked(getCurrentAgent).mockResolvedValue({ id: "agent-1", status: "active" } as never);
+
+    expect(await createDraftAction({ fabricId, templateId })).toEqual({
+      ok: false,
+      error: "Choose the customer you're ordering for in your agent panel.",
+    });
+
+    vi.mocked(getMyCustomer).mockResolvedValue(null);
+    expect(await createDraftAction({ fabricId, templateId, customerId })).toEqual({
+      ok: false,
+      error: "This customer isn't assigned to you.",
+    });
+
+    vi.mocked(getMyCustomer).mockResolvedValue({ customerId, fullName: "Sana", phone: null });
+    vi.mocked(getFabric).mockResolvedValue({ id: fabricId, supported_options: {} } as never);
+    vi.mocked(getTemplate).mockResolvedValue({ id: templateId, options: [] } as never);
+    vi.mocked(isTemplateCompatibleWithFabric).mockReturnValue(true);
+    vi.mocked(createDraft).mockResolvedValue({ id: draftId } as never);
+
+    expect(await createDraftAction({ fabricId, templateId, customerId })).toEqual({ ok: true, data: { id: draftId } });
+    expect(createDraft).toHaveBeenCalledWith(fakeSupabase, { customerId, fabricId, templateId, agentId: "agent-p1" });
   });
 
   it("fails when the fabric doesn't exist", async () => {
@@ -200,7 +230,7 @@ describe("priceDraftAction", () => {
       yardageMetres: 5.2,
       fabricCost: 4680,
       stitchCost: 2500,
-      optionsCost: 0,
+      optionsCost: 0, adjustment: 0,
       total: 7180,
     });
 
@@ -221,7 +251,7 @@ describe("priceDraftAction", () => {
     });
     expect(result).toEqual({
       ok: true,
-      data: { yardageMetres: 5.2, fabricCost: 4680, stitchCost: 2500, optionsCost: 0, total: 7180 },
+      data: { yardageMetres: 5.2, fabricCost: 4680, stitchCost: 2500, optionsCost: 0, adjustment: 0, total: 7180 },
     });
   });
 });
@@ -262,7 +292,7 @@ describe("takeSoftReservationAction", () => {
       yardageMetres: 4.5,
       fabricCost: 4050,
       stitchCost: 2500,
-      optionsCost: 0,
+      optionsCost: 0, adjustment: 0,
       total: 6550,
     });
     vi.mocked(takeSoftReservation).mockResolvedValue({ id: "r1", kind: "soft", status: "active" } as never);

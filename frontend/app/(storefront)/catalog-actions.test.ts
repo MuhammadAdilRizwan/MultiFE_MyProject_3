@@ -15,6 +15,8 @@ vi.mock("@multife/backend/modules/rules/isTemplateCompatibleWithFabric", () => (
 }));
 vi.mock("@/lib/suppliers", () => ({ getActiveBrandBySlug: vi.fn() }));
 vi.mock("@multife/backend/modules/users/getActor", () => ({ getCurrentProfile: vi.fn() }));
+vi.mock("@multife/backend/modules/agents/getCurrentAgent", () => ({ getCurrentAgent: vi.fn() }));
+vi.mock("@multife/backend/modules/agents/getMyCustomer", () => ({ getMyCustomer: vi.fn() }));
 
 import { createClient } from "@/lib/supabase/server";
 import { listFabrics } from "@multife/backend/modules/catalog/listFabrics";
@@ -25,6 +27,8 @@ import { evaluateOptions } from "@multife/backend/modules/rules/evaluateOptions"
 import { isTemplateCompatibleWithFabric } from "@multife/backend/modules/rules/isTemplateCompatibleWithFabric";
 import { getActiveBrandBySlug } from "@/lib/suppliers";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
+import { getCurrentAgent } from "@multife/backend/modules/agents/getCurrentAgent";
+import { getMyCustomer } from "@multife/backend/modules/agents/getMyCustomer";
 import {
   getFabricAction,
   getOrderContextAction,
@@ -259,7 +263,7 @@ describe("getOrderContextAction", () => {
 
     const result = await getOrderContextAction({ brandSlug: "khadi", fabricId, templateId: null });
 
-    expect(result).toEqual({ ok: true, data: { brand, fabric, template: null, options: [], isCustomer: false } });
+    expect(result).toEqual({ ok: true, data: { brand, fabric, template: null, options: [], isCustomer: false, isAgent: false, orderingFor: null, canSave: false } });
     expect(getTemplate).not.toHaveBeenCalled();
   });
 
@@ -281,7 +285,7 @@ describe("getOrderContextAction", () => {
     expect(evaluateOptions).toHaveBeenCalledWith([], { neckline: ["round"] });
     expect(result).toEqual({
       ok: true,
-      data: { brand, fabric, template: { id: templateId, name: "Kurti", is_published: true }, options: evaluated, isCustomer: false },
+      data: { brand, fabric, template: { id: templateId, name: "Kurti", is_published: true }, options: evaluated, isCustomer: false, isAgent: false, orderingFor: null, canSave: false },
     });
   });
 
@@ -299,5 +303,31 @@ describe("getOrderContextAction", () => {
     const result = await getOrderContextAction({ brandSlug: "khadi", fabricId });
 
     expect(result.ok && result.data.isCustomer).toBe(false);
+  });
+
+  it("lets an agent save an order for a customer verified as theirs", async () => {
+    const customerId = "823e4567-e89b-12d3-a456-426614174000";
+    vi.mocked(getCurrentProfile).mockResolvedValue({ id: "agent-p1", role: "agent", status: "active" } as never);
+    vi.mocked(getCurrentAgent).mockResolvedValue({ id: "agent-1", status: "active" } as never);
+    vi.mocked(getMyCustomer).mockResolvedValue({ customerId, fullName: "Sana Khan", phone: null });
+
+    const result = await getOrderContextAction({ brandSlug: "khadi", fabricId, actingForCustomerId: customerId });
+
+    expect(getMyCustomer).toHaveBeenCalledWith(fakeSupabase, "agent-1", customerId);
+    expect(result).toMatchObject({
+      ok: true,
+      data: { isAgent: true, canSave: true, orderingFor: { customerId, name: "Sana Khan" } },
+    });
+  });
+
+  it("doesn't let an agent save for someone else's customer", async () => {
+    const customerId = "823e4567-e89b-12d3-a456-426614174000";
+    vi.mocked(getCurrentProfile).mockResolvedValue({ id: "agent-p1", role: "agent", status: "active" } as never);
+    vi.mocked(getCurrentAgent).mockResolvedValue({ id: "agent-1", status: "active" } as never);
+    vi.mocked(getMyCustomer).mockResolvedValue(null);
+
+    const result = await getOrderContextAction({ brandSlug: "khadi", fabricId, actingForCustomerId: customerId });
+
+    expect(result).toMatchObject({ ok: true, data: { isAgent: true, canSave: false, orderingFor: null } });
   });
 });

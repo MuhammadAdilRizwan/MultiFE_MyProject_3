@@ -1,13 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  estimateFabricMetres,
-  estimateOrderFrom,
-  fabricName,
-  fabricProperties,
-  formatMetres,
-  nominalMeasurements,
-  templateImage,
-} from "./catalog";
+import { estimateFabricMetres, estimateOrderFrom, fabricName, fabricProperties, formatMetres, nominalMeasurements, priceAdjustmentLabel, templateImage } from "./catalog";
 
 const formula = { base_metres: 4.5, coefficients: { chest: 0.015 }, wastage_margin: 0.1 };
 const required_measurements = [{ key: "chest", label: "Chest", unit: "cm", min: 60, max: 160 }];
@@ -51,17 +43,33 @@ describe("estimateOrderFrom", () => {
   ];
 
   it("is fabric plus base stitching when nothing extra is chosen", () => {
-    expect(estimateOrderFrom(template, fabric)).toEqual({
+    expect(estimateOrderFrom({ ...template, base_stitch_price: 6000 }, fabric)).toEqual({
       yardageMetres: 6.765,
       fabricCost: 6088.5,
-      stitchCost: 2500,
+      stitchCost: 6000,
       optionsCost: 0,
-      total: 8588.5,
+      adjustment: 0,
+      total: 12088.5,
     });
   });
 
   it("adds the extra price of the chosen options", () => {
-    expect(estimateOrderFrom(template, fabric, offered, { closure: "zip" })).toMatchObject({ optionsCost: 300, total: 8888.5 });
+    expect(estimateOrderFrom({ ...template, base_stitch_price: 6000 }, fabric, offered, { closure: "zip" })).toMatchObject({
+      optionsCost: 300,
+      adjustment: 0,
+      total: 12388.5,
+    });
+  });
+
+  it("lifts an outfit below PKR 10,000 to the minimum, showing the difference", () => {
+    expect(estimateOrderFrom(template, fabric)).toMatchObject({ fabricCost: 6088.5, stitchCost: 2500, adjustment: 1411.5, total: 10000 });
+  });
+});
+
+describe("priceAdjustmentLabel", () => {
+  it("names a top-up and a cap differently", () => {
+    expect(priceAdjustmentLabel(500)).toBe("Minimum outfit price");
+    expect(priceAdjustmentLabel(-500)).toBe("Price cap (max PKR 20,000)");
   });
 });
 

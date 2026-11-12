@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ActingForBar } from "@/components/agent/acting-for-bar";
 import { Logo } from "@/components/brand/logo";
 
 export function OrderTopBar({ backHref, backLabel = "Back", storeName }: {
@@ -23,6 +24,7 @@ export function OrderTopBar({ backHref, backLabel = "Back", storeName }: {
           {storeName}
         </span>
       </div>
+      <ActingForBar />
     </header>
   );
 }

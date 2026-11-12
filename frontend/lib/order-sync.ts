@@ -5,8 +5,9 @@ import type { ActionResult } from "./action-result";
 import type { Selections } from "./customization";
 import { readDraft, updateDraft } from "./order-draft";
 
-// Signed-in customers keep their order in order_drafts (order module, FR-CUS-13)
-// as well as in the browser. These keep the two in step; guests never call them.
+// Signed-in customers (and agents ordering for a customer) keep the order in
+// order_drafts (order module, FR-CUS-13) as well as in the browser. These keep
+// the two in step; guests never call them.
 
 // The database draft for the current fabric + template, created on first use
 // (or again when the customer has since picked a different pair).
@@ -14,13 +15,23 @@ export async function ensureRemoteDraft(): Promise<ActionResult<string>> {
   const draft = readDraft();
   if (!draft.fabricId || !draft.templateId) return { ok: false, error: "Pick a fabric and template first." };
   const { remote } = draft;
-  if (remote && remote.fabricId === draft.fabricId && remote.templateId === draft.templateId) {
+  const customerId = draft.actingFor?.customerId ?? null;
+  if (
+    remote &&
+    remote.fabricId === draft.fabricId &&
+    remote.templateId === draft.templateId &&
+    (remote.customerId ?? null) === customerId
+  ) {
     return { ok: true, data: remote.id };
   }
 
-  const result = await createDraftAction({ fabricId: draft.fabricId, templateId: draft.templateId });
+  const result = await createDraftAction({
+    fabricId: draft.fabricId,
+    templateId: draft.templateId,
+    ...(customerId ? { customerId } : {}),
+  });
   if (!result.ok) return result;
-  updateDraft({ remote: { id: result.data.id, fabricId: draft.fabricId, templateId: draft.templateId } });
+  updateDraft({ remote: { id: result.data.id, fabricId: draft.fabricId, templateId: draft.templateId, customerId } });
   return { ok: true, data: result.data.id };
 }
 

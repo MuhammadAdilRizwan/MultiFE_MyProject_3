@@ -15,6 +15,10 @@ vi.mock("@multife/backend/modules/measurements/getMeasurementProfile", () => ({ 
 vi.mock("@multife/backend/modules/measurements/saveConfirmedMeasurements", () => ({ saveConfirmedMeasurements: vi.fn() }));
 vi.mock("@multife/backend/modules/orders/placeCodOrder", () => ({ placeCodOrder: vi.fn() }));
 vi.mock("@multife/backend/modules/orders/takeSoftReservation", () => ({ takeSoftReservation: vi.fn() }));
+vi.mock("@multife/backend/modules/agents/getCurrentAgent", () => ({ getCurrentAgent: vi.fn() }));
+vi.mock("@multife/backend/modules/agents/getMyCustomer", () => ({ getMyCustomer: vi.fn() }));
+vi.mock("@multife/backend/modules/agents/recordConsent", () => ({ recordConsent: vi.fn(), hasDraftConsent: vi.fn() }));
+vi.mock("@multife/backend/modules/agents/saveAgentMeasurements", () => ({ saveAgentMeasurements: vi.fn() }));
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -25,10 +29,15 @@ import { saveConfirmedMeasurements } from "@multife/backend/modules/measurements
 import { placeCodOrder } from "@multife/backend/modules/orders/placeCodOrder";
 import { takeSoftReservation } from "@multife/backend/modules/orders/takeSoftReservation";
 import { DELIVERY_DAYS } from "@multife/backend/modules/rules/orderSummary";
+import { getCurrentAgent } from "@multife/backend/modules/agents/getCurrentAgent";
+import { getMyCustomer } from "@multife/backend/modules/agents/getMyCustomer";
+import { hasDraftConsent, recordConsent } from "@multife/backend/modules/agents/recordConsent";
+import { saveAgentMeasurements } from "@multife/backend/modules/agents/saveAgentMeasurements";
 import {
   getCheckoutAction,
   getMeasurementStepAction,
   placeOrderAction,
+  recordConsentAction,
   saveMeasurementsAction,
 } from "./checkout-actions";
 
@@ -42,7 +51,7 @@ const fields = [
   { key: "chest", label: "Chest", unit: "cm", min: 75, max: 135 },
   { key: "waist", label: "Waist", unit: "cm", min: 60, max: 125 },
 ];
-const pricing = { yardageMetres: 5.1, fabricCost: 6120, stitchCost: 3200, optionsCost: 600, total: 9920 };
+const pricing = { yardageMetres: 5.1, fabricCost: 6120, stitchCost: 3200, optionsCost: 600, adjustment: 0, total: 9920 };
 const evaluatedOptions = [
   {
     groupKey: "neck-finish",
@@ -115,7 +124,10 @@ describe("who may check out a draft", () => {
 describe("getMeasurementStepAction", () => {
   it("prefills from the draft's own confirmed set", async () => {
     const result = await getMeasurementStepAction({ draftId });
-    expect(result).toEqual({ ok: true, data: { fields, values: { chest: 96, waist: 80 }, prefilledFrom: "draft" } });
+    expect(result).toEqual({
+      ok: true,
+      data: { fields, values: { chest: 96, waist: 80 }, prefilledFrom: "draft", mode: "customer", consentRecorded: true },
+    });
   });
 
   it("falls back to the customer's last confirmed set, keeping only this template's fields", async () => {
@@ -125,13 +137,19 @@ describe("getMeasurementStepAction", () => {
     const result = await getMeasurementStepAction({ draftId });
 
     expect(getLatestConfirmedProfile).toHaveBeenCalledWith(session, "c1");
-    expect(result).toEqual({ ok: true, data: { fields, values: { chest: 90 }, prefilledFrom: "saved" } });
+    expect(result).toEqual({
+      ok: true,
+      data: { fields, values: { chest: 90 }, prefilledFrom: "saved", mode: "customer", consentRecorded: true },
+    });
   });
 
   it("returns empty values for a first-time customer", async () => {
     vi.mocked(loadAndPriceDraft).mockResolvedValue(ctx({ profile: null }) as never);
     vi.mocked(getLatestConfirmedProfile).mockResolvedValue(null);
-    expect(await getMeasurementStepAction({ draftId })).toEqual({ ok: true, data: { fields, values: null, prefilledFrom: null } });
+    expect(await getMeasurementStepAction({ draftId })).toEqual({
+      ok: true,
+      data: { fields, values: null, prefilledFrom: null, mode: "customer", consentRecorded: true },
+    });
   });
 });
 
@@ -198,6 +216,7 @@ describe("getCheckoutAction", () => {
       ],
       estDeliveryDate: expected.toISOString().slice(0, 10),
       contact: { fullName: "Ayesha", phone: "03001234567" },
+      mode: "customer",
     });
   });
 });
@@ -236,12 +255,95 @@ describe("placeOrderAction", () => {
       delivery: { full_name: "Ayesha Khan", phone: "0300 1234567", address_line: "House 12, Street 4, Gulberg", city: "Lahore" },
       idempotencyKey: key,
     });
-    expect(result).toEqual({ ok: true, data: { number: "MF-2026-000001" } });
+    expect(result).toEqual({ ok: true, data: { number: "MF-2026-000001", mode: "customer" } });
   });
 
   it("passes the hard-reservation stock error through", async () => {
     vi.mocked(placeCodOrder).mockRejectedValue({ message: "Not enough fabric in stock to confirm this order" });
     const result = await placeOrderAction({ draftId, idempotencyKey: key, delivery });
     expect(result).toEqual({ ok: false, error: "Not enough fabric in stock to confirm this order" });
+  });
+});
+
+describe("agent ordering for an assigned customer", () => {
+  const agentProfile = { id: "agent-p1", role: "agent", status: "active", full_name: "Agent Ali", phone: null, email: "ali@x.test" };
+  const agentDraft = () => ctx({ draft: { ...ctx().draft, customer_id: "c1", agent_id: "agent-p1" } });
+
+  beforeEach(() => {
+    vi.mocked(getCurrentProfile).mockResolvedValue(agentProfile as never);
+    vi.mocked(getCurrentAgent).mockResolvedValue({ id: "agent-1", status: "active" } as never);
+    vi.mocked(getMyCustomer).mockResolvedValue({ customerId: "c1", fullName: "Sana Khan", phone: "923001234567" });
+    vi.mocked(loadAndPriceDraft).mockResolvedValue(agentDraft() as never);
+    vi.mocked(hasDraftConsent).mockResolvedValue(false);
+    // Earlier tests leave rejecting implementations on these shared mocks.
+    vi.mocked(takeSoftReservation).mockResolvedValue({} as never);
+    vi.mocked(saveAgentMeasurements).mockResolvedValue({} as never);
+  });
+
+  it("refuses another agent's draft", async () => {
+    vi.mocked(loadAndPriceDraft).mockResolvedValue(ctx({ draft: { ...ctx().draft, agent_id: "someone-else" } }) as never);
+    expect(await getCheckoutAction({ draftId })).toEqual({ ok: false, error: "Draft not found." });
+  });
+
+  it("refuses once the customer is no longer assigned to the agent", async () => {
+    vi.mocked(getMyCustomer).mockResolvedValue(null);
+    expect(await getCheckoutAction({ draftId })).toEqual({ ok: false, error: "This customer isn't assigned to you." });
+  });
+
+  it("keeps customer drafts and agent drafts apart", async () => {
+    vi.mocked(loadAndPriceDraft).mockResolvedValue(ctx() as never);
+    expect((await getCheckoutAction({ draftId })).ok).toBe(false);
+
+    vi.mocked(getCurrentProfile).mockResolvedValue(customer as never);
+    vi.mocked(loadAndPriceDraft).mockResolvedValue(agentDraft() as never);
+    expect(await getCheckoutAction({ draftId })).toEqual({ ok: false, error: "Draft not found." });
+  });
+
+  it("tells the measurement step whether consent is on record", async () => {
+    const result = await getMeasurementStepAction({ draftId });
+    expect(result).toMatchObject({ ok: true, data: { mode: "agent", consentRecorded: false } });
+    expect(hasDraftConsent).toHaveBeenCalledWith(session, draftId);
+  });
+
+  it("records consent only with the agent's confirmation", async () => {
+    expect((await recordConsentAction({ draftId, method: "in_person", agreed: false } as never)).ok).toBe(false);
+    expect(recordConsent).not.toHaveBeenCalled();
+
+    expect(await recordConsentAction({ draftId, method: "in_person", agreed: true })).toEqual({ ok: true, data: { recorded: true } });
+    expect(recordConsent).toHaveBeenCalledWith(session, { draftId, method: "in_person" });
+  });
+
+  it("doesn't let a customer record agent consent", async () => {
+    vi.mocked(getCurrentProfile).mockResolvedValue(customer as never);
+    vi.mocked(loadAndPriceDraft).mockResolvedValue(ctx() as never);
+    expect(await recordConsentAction({ draftId, method: "in_person", agreed: true })).toEqual({
+      ok: false,
+      error: "Only an agent records consent.",
+    });
+  });
+
+  it("saves the measurements as taken by the agent", async () => {
+    const result = await saveMeasurementsAction({ draftId, values: { chest: 96, waist: 80 }, confirmed: true });
+    expect(saveAgentMeasurements).toHaveBeenCalledWith(session, { draftId, values: { chest: 96, waist: 80 } });
+    expect(saveConfirmedMeasurements).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: true, data: pricing });
+  });
+
+  it("shows the consent message when measurements come before consent", async () => {
+    vi.mocked(saveAgentMeasurements).mockRejectedValue({ message: "Record the customer's consent first" });
+    const result = await saveMeasurementsAction({ draftId, values: { chest: 96, waist: 80 }, confirmed: true });
+    expect(result).toEqual({ ok: false, error: "Record the customer's consent first" });
+  });
+
+  it("prefills the delivery form with the customer's details, not the agent's", async () => {
+    const result = await getCheckoutAction({ draftId });
+    expect(result).toMatchObject({ ok: true, data: { contact: { fullName: "Sana Khan", phone: "+923001234567" }, mode: "agent" } });
+  });
+
+  it("places the order for the customer, as the agent", async () => {
+    vi.mocked(placeCodOrder).mockResolvedValue({ id: "o1", number: "MF-2026-000009", total: 9920, est_delivery_date: null });
+    const result = await placeOrderAction({ draftId, idempotencyKey: key, delivery });
+    expect(placeCodOrder).toHaveBeenCalledWith(service, expect.objectContaining({ customerId: "c1", placedBy: "agent-p1" }));
+    expect(result).toEqual({ ok: true, data: { number: "MF-2026-000009", mode: "agent" } });
   });
 });

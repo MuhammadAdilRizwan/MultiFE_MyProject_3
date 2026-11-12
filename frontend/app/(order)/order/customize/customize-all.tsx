@@ -46,7 +46,7 @@ function CustomizeForm({ ctx }: { ctx: OrderContext }) {
     );
     setSelections(choices, labels);
     setSaveError(null);
-    if (!ctx.isCustomer) {
+    if (!ctx.canSave) {
       router.push("/order/review");
       return;
     }

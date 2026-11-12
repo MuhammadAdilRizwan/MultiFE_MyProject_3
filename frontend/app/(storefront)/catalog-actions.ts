@@ -9,6 +9,8 @@ import type { FabricImageRow, FabricRow, TemplateOptionRow, TemplateRow } from "
 import { evaluateOptions } from "@multife/backend/modules/rules/evaluateOptions";
 import { isTemplateCompatibleWithFabric } from "@multife/backend/modules/rules/isTemplateCompatibleWithFabric";
 import type { EvaluatedOptionGroup, TemplateOptionInput } from "@multife/backend/modules/rules/types";
+import { getCurrentAgent } from "@multife/backend/modules/agents/getCurrentAgent";
+import { getMyCustomer } from "@multife/backend/modules/agents/getMyCustomer";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
 import { describeError } from "@/lib/describe-error";
@@ -194,6 +196,8 @@ const getOrderContextSchema = z.object({
   brandSlug: z.string().min(1),
   fabricId: z.string().uuid(),
   templateId: z.string().uuid().nullable().optional(),
+  // The customer a signed-in agent is ordering for (from the browser draft).
+  actingForCustomerId: z.string().uuid().nullable().optional(),
 });
 
 export type OrderContextData = {
@@ -205,6 +209,13 @@ export type OrderContextData = {
   // A signed-in, active customer gets a database draft (order module); guests
   // and other roles keep the draft in the browser only.
   isCustomer: boolean;
+  isAgent: boolean;
+  // Set when an agent orders for one of their own customers (checked here
+  // against agent_customers, not taken from the browser).
+  orderingFor: { customerId: string; name: string } | null;
+  // Whether this session saves the order to the database (customer, or an
+  // agent with a verified customer).
+  canSave: boolean;
 };
 
 // Everything the order screens need for the customer's saved draft, read
@@ -227,15 +238,25 @@ export async function getOrderContextAction(
 
     const actor = await getCurrentProfile(supabase);
     const isCustomer = actor?.role === "customer" && actor.status === "active";
+    const isAgent = actor?.role === "agent" && actor.status === "active";
 
-    if (!parsed.data.templateId) return ok({ brand, fabric, template: null, options: [], isCustomer });
+    let orderingFor: OrderContextData["orderingFor"] = null;
+    if (isAgent && parsed.data.actingForCustomerId) {
+      const agent = await getCurrentAgent(supabase);
+      const customer =
+        agent && agent.status === "active" ? await getMyCustomer(supabase, agent.id, parsed.data.actingForCustomerId) : null;
+      if (customer) orderingFor = { customerId: customer.customerId, name: customer.fullName?.trim() || "your customer" };
+    }
+    const who = { isCustomer, isAgent, orderingFor, canSave: isCustomer || orderingFor !== null };
+
+    if (!parsed.data.templateId) return ok({ brand, fabric, template: null, options: [], ...who });
 
     const full = await getTemplate(supabase, parsed.data.templateId);
     if (!full || !full.is_published) return fail("Template not found.");
 
     const { options: templateOptions, ...template } = full;
     const options = evaluateOptions(toTemplateOptionInputs(templateOptions), fabric.supported_options);
-    return ok({ brand, fabric, template, options, isCustomer });
+    return ok({ brand, fabric, template, options, ...who });
   } catch (error) {
     return fail(describeError(error));
   }

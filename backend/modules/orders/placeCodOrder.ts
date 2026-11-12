@@ -19,6 +19,9 @@ export interface PlaceCodOrderParams {
   options: ResolvedOption[];
   delivery: DeliveryAddress;
   idempotencyKey: string;
+  // The agent's profile id for an agent-placed order (FR-AGT-03); omitted
+  // for a customer's own order.
+  placedBy?: string;
 }
 
 export interface PlacedOrder {
@@ -29,7 +32,8 @@ export interface PlacedOrder {
 }
 
 // Thin RPC wrapper over fn_place_cod_order (cash on delivery, agreed until a
-// payment gateway is chosen). Service-role only: pass the admin client, and
+// payment gateway is chosen) — the customer's own order or one an agent
+// places for them (placedBy). Service-role only: pass the admin client, and
 // only after the caller has checked the customer owns the draft and priced
 // it on the server. The DB function holds the hard reservation, idempotency
 // and the order snapshot; its errors ("Not enough fabric in stock…",
@@ -50,6 +54,7 @@ export async function placeCodOrder(
     p_options: params.options,
     p_delivery: params.delivery,
     p_idempotency_key: params.idempotencyKey,
+    ...(params.placedBy ? { p_placed_by: params.placedBy } : {}),
   });
   if (error) throw error;
 

@@ -48,6 +48,14 @@ describe("placeCodOrder", () => {
     });
   });
 
+  it("passes the placing agent for an agent-placed order", async () => {
+    const { client, getCalledWith } = recordingClient({ data: { id: "o1", number: "MF-2026-000001" } });
+
+    await placeCodOrder(client, { ...params, placedBy: "agent-profile-1" });
+
+    expect(getCalledWith()).toMatchObject({ args: { p_placed_by: "agent-profile-1" } });
+  });
+
   it("returns only the order fields the confirmation needs", async () => {
     const { client } = recordingClient({
       data: { id: "o1", number: "MF-2026-000001", total: 10040, est_delivery_date: "2026-11-25", customer_id: "c1" },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { priceOrder } from "./priceOrder";
+import { ORDER_PRICE_BOUNDS, priceOrder } from "./priceOrder";
 import type { EvaluatedOptionGroup } from "./types";
 
 const evaluatedOptions: EvaluatedOptionGroup[] = [
@@ -26,6 +26,7 @@ describe("priceOrder", () => {
       yardageMetres: 4.5,
       evaluatedOptions,
       selection: {},
+      bounds: null,
     });
 
     expect(result).toEqual({
@@ -33,6 +34,7 @@ describe("priceOrder", () => {
       fabricCost: 4050,
       stitchCost: 2500,
       optionsCost: 0,
+      adjustment: 0,
       total: 6550,
     });
   });
@@ -44,6 +46,7 @@ describe("priceOrder", () => {
       yardageMetres: 4.5,
       evaluatedOptions,
       selection: { sleeve: "three-quarter", closure: "zip" },
+      bounds: null,
     });
 
     expect(result.optionsCost).toBe(350);
@@ -81,9 +84,40 @@ describe("priceOrder", () => {
       yardageMetres: 2.333,
       evaluatedOptions: [],
       selection: {},
+      bounds: null,
     });
 
     expect(result.fabricCost).toBe(2800.89);
     expect(result.total).toBe(3800.89);
+  });
+
+  describe("price bounds (PKR 10,000 – 20,000 per outfit)", () => {
+    const price = (fabricPricePerMetre: number, yardageMetres: number, stitch: number) =>
+      priceOrder({ fabricPricePerMetre, templateBaseStitchPrice: stitch, yardageMetres, evaluatedOptions, selection: {} });
+
+    it("are 10,000 and 20,000", () => {
+      expect(ORDER_PRICE_BOUNDS).toEqual({ min: 10000, max: 20000 });
+    });
+
+    it("leave a price already inside the range alone", () => {
+      expect(price(1000, 5, 7000)).toMatchObject({ adjustment: 0, total: 12000 });
+    });
+
+    it("raise a price below the minimum, showing the difference", () => {
+      expect(price(900, 4.5, 2500)).toMatchObject({ fabricCost: 4050, stitchCost: 2500, adjustment: 3450, total: 10000 });
+    });
+
+    it("cap a price above the maximum, showing the difference", () => {
+      expect(price(3000, 8, 6000)).toMatchObject({ fabricCost: 24000, stitchCost: 6000, adjustment: -10000, total: 20000 });
+    });
+
+    it("always add up: fabric + stitching + extras + adjustment = total", () => {
+      for (const [p, y, st] of [[700, 2.9, 7700], [1700, 7.7, 4700], [3600, 9, 9000], [100, 1, 100]]) {
+        const r = price(p, y, st);
+        expect(Math.round((r.fabricCost + r.stitchCost + r.optionsCost + r.adjustment) * 100) / 100).toBe(r.total);
+        expect(r.total).toBeGreaterThanOrEqual(10000);
+        expect(r.total).toBeLessThanOrEqual(20000);
+      }
+    });
   });
 });

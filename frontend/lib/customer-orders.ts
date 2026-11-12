@@ -2,9 +2,15 @@ import "server-only";
 import type { ResolvedOption } from "@multife/backend/modules/rules/orderSummary";
 import { createClient } from "@/lib/supabase/server";
 
-// The signed-in customer's own orders. Uses the session client, so RLS
-// ("orders: customer reads own", and the same on order_items /
-// order_status_history) is what scopes the rows — never the admin client.
+// Orders for the signed-in user: a customer's own orders, or the orders an
+// agent placed for their customers (FR-AGT-11). Uses the session client, so
+// RLS ("orders: customer reads own" / "orders: agent reads placed by self",
+// and the same on order_items / order_status_history) is what scopes the
+// rows — never the admin client. The extra column filter just picks which of
+// the two views the page wants.
+
+export type OrderScope = "customer" | "agent";
+const SCOPE_COLUMN: Record<OrderScope, string> = { customer: "customer_id", agent: "agent_id" };
 
 export type OrderListItem = {
   number: string;
@@ -16,6 +22,9 @@ export type OrderListItem = {
   brandName: string | null;
   fabricName: string | null;
   fabricImage: string | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  channel: string;
 };
 
 export type OrderDetail = OrderListItem & {
@@ -32,9 +41,10 @@ export type OrderDetail = OrderListItem & {
 };
 
 const ORDER_COLUMNS = `
-  id, number, status, total, created_at, est_delivery_date, payment_method, payment_status,
+  id, number, status, total, created_at, est_delivery_date, payment_method, payment_status, order_channel,
   yardage_metres, fabric_cost, stitch_cost, options_cost, delivery_address,
   supplier:suppliers(name),
+  customer:profiles!orders_customer_id_fkey(full_name, phone),
   fabric:fabrics(name, display_name, images:fabric_images(url, sort)),
   items:order_items(template_name, options, measurements)
 `;
@@ -48,6 +58,8 @@ type OrderRow = {
   est_delivery_date: string | null;
   payment_method: string;
   payment_status: string;
+  order_channel: string;
+  customer: { full_name: string | null; phone: string | null } | null;
   yardage_metres: number | string | null;
   fabric_cost: number | string;
   stitch_cost: number | string;
@@ -70,10 +82,13 @@ function toListItem(row: OrderRow): OrderListItem {
     brandName: row.supplier?.name ?? null,
     fabricName: row.fabric ? row.fabric.display_name || row.fabric.name : null,
     fabricImage: images[0]?.url ?? null,
+    customerName: row.customer?.full_name ?? null,
+    customerPhone: row.customer?.phone ?? null,
+    channel: row.order_channel,
   };
 }
 
-export async function listMyOrders(): Promise<OrderListItem[]> {
+export async function listMyOrders(scope: OrderScope = "customer"): Promise<OrderListItem[]> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return [];
@@ -81,13 +96,13 @@ export async function listMyOrders(): Promise<OrderListItem[]> {
   const { data, error } = await supabase
     .from("orders")
     .select(ORDER_COLUMNS)
-    .eq("customer_id", auth.user.id)
+    .eq(SCOPE_COLUMN[scope], auth.user.id)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data as unknown as OrderRow[]).map(toListItem);
 }
 
-export async function getMyOrder(number: string): Promise<OrderDetail | null> {
+export async function getMyOrder(number: string, scope: OrderScope = "customer"): Promise<OrderDetail | null> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return null;
@@ -95,7 +110,7 @@ export async function getMyOrder(number: string): Promise<OrderDetail | null> {
   const { data, error } = await supabase
     .from("orders")
     .select(ORDER_COLUMNS)
-    .eq("customer_id", auth.user.id)
+    .eq(SCOPE_COLUMN[scope], auth.user.id)
     .eq("number", number)
     .maybeSingle();
   if (error) throw error;

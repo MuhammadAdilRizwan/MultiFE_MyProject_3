@@ -32,6 +32,14 @@ describe("createDraft", () => {
     });
   });
 
+  it("records the agent when an agent starts the order", async () => {
+    const { client, getInsertedWith } = recordingClient({ data: { id: "d1" } });
+
+    await createDraft(client, { customerId: "c1", fabricId: "f1", templateId: "t1", agentId: "agent-profile-1" });
+
+    expect(getInsertedWith()).toMatchObject({ customer_id: "c1", agent_id: "agent-profile-1" });
+  });
+
   it("returns the inserted row", async () => {
     const { client } = recordingClient({ data: { id: "d1", customer_id: "c1" } });
 

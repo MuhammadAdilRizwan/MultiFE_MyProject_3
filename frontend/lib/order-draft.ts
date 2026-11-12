@@ -15,13 +15,26 @@ export type Draft = {
   templateId: string | null;
   selections: Selections;
   labels: Record<string, string>;
-  // The signed-in customer's order_drafts row (order module) for this exact
-  // fabric + template; a different pair needs a new row. Null for guests.
-  remote: { id: string; fabricId: string; templateId: string } | null;
+  // The order_drafts row (order module) for this exact fabric + template
+  // (+ customer, when an agent orders); a different pair needs a new row.
+  // Null for guests.
+  remote: { id: string; fabricId: string; templateId: string; customerId?: string | null } | null;
+  // Set when a signed-in agent is ordering for one of their customers
+  // (FR-AGT-03). Kept across store/fabric changes until the order is placed
+  // or the agent stops.
+  actingFor: { customerId: string; name: string } | null;
 };
 
 const KEY = "multife:order-draft";
-const EMPTY: Draft = { brandSlug: null, fabricId: null, templateId: null, selections: {}, labels: {}, remote: null };
+const EMPTY: Draft = {
+  brandSlug: null,
+  fabricId: null,
+  templateId: null,
+  selections: {},
+  labels: {},
+  remote: null,
+  actingFor: null,
+};
 
 let current: Draft = EMPTY;
 let loaded = false;
@@ -84,7 +97,13 @@ export function dropSelections(groupKeys: string[]) {
 export function startDraft(brandSlug: string, fabricId: string) {
   load();
   const same = current.brandSlug === brandSlug && current.fabricId === fabricId;
-  write(same ? current : { ...EMPTY, brandSlug, fabricId });
+  write(same ? current : { ...EMPTY, brandSlug, fabricId, actingFor: current.actingFor });
+}
+
+// An agent starts a fresh order for one of their customers.
+export function startOrderFor(customer: { customerId: string; name: string }) {
+  load();
+  write({ ...EMPTY, actingFor: customer });
 }
 
 const subscribe = (l: () => void) => {
@@ -105,7 +124,8 @@ export function useDraft(): Draft | null {
   );
 }
 
-// After the order is placed: the next order starts from scratch.
+// After the order is placed (or an agent stops ordering for a customer):
+// the next order starts from scratch.
 export function clearDraft() {
   load();
   write(EMPTY);

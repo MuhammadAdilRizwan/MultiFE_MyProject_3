@@ -28,17 +28,19 @@ beforeEach(() => {
 });
 
 describe("createProvisionalCustomerAction", () => {
-  it("rejects a missing phone", async () => {
-    const result = await createProvisionalCustomerAction({} as never);
-
-    expect(result.ok).toBe(false);
+  it("rejects a missing or invalid email", async () => {
+    expect((await createProvisionalCustomerAction({} as never)).ok).toBe(false);
+    expect(await createProvisionalCustomerAction({ email: "not-an-email" })).toEqual({
+      ok: false,
+      error: "Enter the customer's email address.",
+    });
     expect(createProvisionalCustomer).not.toHaveBeenCalled();
   });
 
   it("fails when nobody is signed in", async () => {
     vi.mocked(getCurrentProfile).mockResolvedValue(null);
 
-    const result = await createProvisionalCustomerAction({ phone: "+923001234567" });
+    const result = await createProvisionalCustomerAction({ email: "sana@example.org" });
 
     expect(result).toEqual({ ok: false, error: "Sign in as an agent to add a customer." });
     expect(getCurrentAgent).not.toHaveBeenCalled();
@@ -47,7 +49,7 @@ describe("createProvisionalCustomerAction", () => {
   it("fails when the signed-in profile isn't an active agent", async () => {
     vi.mocked(getCurrentProfile).mockResolvedValue({ id: "p1", role: "customer", status: "active" } as never);
 
-    const result = await createProvisionalCustomerAction({ phone: "+923001234567" });
+    const result = await createProvisionalCustomerAction({ email: "sana@example.org" });
 
     expect(result).toEqual({ ok: false, error: "Sign in as an agent to add a customer." });
   });
@@ -56,7 +58,7 @@ describe("createProvisionalCustomerAction", () => {
     vi.mocked(getCurrentProfile).mockResolvedValue({ id: "p1", role: "agent", status: "active" } as never);
     vi.mocked(getCurrentAgent).mockResolvedValue(null);
 
-    const result = await createProvisionalCustomerAction({ phone: "+923001234567" });
+    const result = await createProvisionalCustomerAction({ email: "sana@example.org" });
 
     expect(result).toEqual({ ok: false, error: "Your agent account isn't active." });
   });
@@ -72,13 +74,19 @@ describe("createProvisionalCustomerAction", () => {
     } as never);
     vi.mocked(createProvisionalCustomer).mockResolvedValue({ customerId: "c1" });
 
-    const result = await createProvisionalCustomerAction({ phone: "+923001234567", fullName: "Sana Khan" });
+    const result = await createProvisionalCustomerAction({
+      email: " Sana@Example.org ",
+      phone: "+923001234567",
+      fullName: "Sana Khan",
+    });
 
     expect(createProvisionalCustomer).toHaveBeenCalledWith(fakeAdminClient, {
+      email: "sana@example.org",
       phone: "+923001234567",
       fullName: "Sana Khan",
       agentId: "a1",
       agentProfileId: "p1",
+      redirectTo: "http://localhost:3000/accept-invite",
     });
     expect(result).toEqual({ ok: true, data: { customerId: "c1" } });
   });

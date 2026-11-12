@@ -129,7 +129,7 @@ function Library({ ctx }: { ctx: OrderContext }) {
             updateDraft(
               selectedId === draft.templateId ? { templateId: selectedId } : { templateId: selectedId, selections: {}, labels: {} },
             );
-            if (!ctx.isCustomer) {
+            if (!ctx.canSave) {
               router.push("/order/preview");
               return;
             }

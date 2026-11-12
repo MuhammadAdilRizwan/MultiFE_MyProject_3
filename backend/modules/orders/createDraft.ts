@@ -4,6 +4,9 @@ export interface CreateDraftParams {
   customerId: string;
   fabricId: string;
   templateId: string;
+  // Set when an agent starts the order for an assigned customer (the agent's
+  // profile id). RLS ("order_drafts: own") lets the agent write the row.
+  agentId?: string;
 }
 
 // Always created at step "fabric" with no options chosen yet — the
@@ -17,6 +20,7 @@ export async function createDraft(
     .from("order_drafts")
     .insert({
       customer_id: params.customerId,
+      ...(params.agentId ? { agent_id: params.agentId } : {}),
       fabric_id: params.fabricId,
       template_id: params.templateId,
       options: {},

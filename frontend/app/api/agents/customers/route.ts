@@ -10,6 +10,6 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   if (!body) return NextResponse.json({ ok: false, error: "Invalid JSON body." }, { status: 400 });
 
-  const result = await createProvisionalCustomerAction({ phone: body.phone, fullName: body.fullName });
+  const result = await createProvisionalCustomerAction({ email: body.email, phone: body.phone, fullName: body.fullName });
   return NextResponse.json(result, { status: result.ok ? 200 : 400 });
 }

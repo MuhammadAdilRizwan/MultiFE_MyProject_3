@@ -3,6 +3,8 @@
 import { z } from "zod";
 import { getFabric } from "@multife/backend/modules/catalog/getFabric";
 import { getTemplate } from "@multife/backend/modules/catalog/getTemplate";
+import { getCurrentAgent } from "@multife/backend/modules/agents/getCurrentAgent";
+import { getMyCustomer } from "@multife/backend/modules/agents/getMyCustomer";
 import { createDraft } from "@multife/backend/modules/orders/createDraft";
 import { getDraft } from "@multife/backend/modules/orders/getDraft";
 import { takeSoftReservation } from "@multife/backend/modules/orders/takeSoftReservation";
@@ -23,6 +25,8 @@ import { createClient } from "@/lib/supabase/server";
 const createDraftSchema = z.object({
   fabricId: z.string().uuid(),
   templateId: z.string().uuid(),
+  // An agent ordering for one of their customers (FR-AGT-03).
+  customerId: z.string().uuid().optional(),
 });
 
 export async function createDraftAction(
@@ -35,7 +39,21 @@ export async function createDraftAction(
     const supabase = await createClient();
 
     const actor = await getCurrentProfile(supabase);
-    if (!actor || actor.role !== "customer" || actor.status !== "active") {
+    const isAgent = actor?.role === "agent" && actor.status === "active";
+    if (!actor || actor.status !== "active" || (actor.role !== "customer" && !isAgent)) {
+      return fail("Sign in as a customer to start an order.");
+    }
+
+    // Who the order is for: the customer themselves, or an agent's assigned customer.
+    let customerId = actor.id;
+    if (isAgent) {
+      if (!parsed.data.customerId) return fail("Choose the customer you're ordering for in your agent panel.");
+      const agent = await getCurrentAgent(supabase);
+      if (!agent || agent.status !== "active") return fail("Your agent account isn't active.");
+      const customer = await getMyCustomer(supabase, agent.id, parsed.data.customerId);
+      if (!customer) return fail("This customer isn't assigned to you.");
+      customerId = customer.customerId;
+    } else if (parsed.data.customerId && parsed.data.customerId !== actor.id) {
       return fail("Sign in as a customer to start an order.");
     }
 
@@ -50,9 +68,10 @@ export async function createDraftAction(
 
     return ok(
       await createDraft(supabase, {
-        customerId: actor.id,
+        customerId,
         fabricId: parsed.data.fabricId,
         templateId: parsed.data.templateId,
+        ...(isAgent ? { agentId: actor.id } : {}),
       }),
     );
   } catch (error) {

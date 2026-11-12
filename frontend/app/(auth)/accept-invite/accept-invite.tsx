@@ -74,7 +74,7 @@ export function AcceptInvite() {
       if (!profile) {
         setState({
           kind: "expired",
-          message: "This invite link has expired or was already used. Ask your MultiFe admin to send a new invite.",
+          message: "This invite link has expired or was already used. Ask your MultiFe agent or admin to send a new invite.",
         });
         return;
       }
@@ -110,20 +110,37 @@ export function AcceptInvite() {
     <AuthCard
       title="Welcome to MultiFe"
       subtitle={
-        <>
-          You&apos;ve been invited as{" "}
-          <span className="font-medium text-ink">{ROLE_LABELS[state.role]}</span>
-          {state.email && (
-            <>
-              {" "}
-              (<span className="font-medium text-ink">{state.email}</span>)
-            </>
-          )}
-          . Choose a password to finish setting up your account.
-        </>
+        state.role === "customer" ? (
+          // A customer invited by their agent (FR-AUTH-10): accepting claims the account.
+          <>
+            Your MultiFe agent set up an account for you
+            {state.email && (
+              <>
+                {" "}
+                (<span className="font-medium text-ink">{state.email}</span>)
+              </>
+            )}
+            . Choose a password to see your orders and sign in any time.
+          </>
+        ) : (
+          <>
+            You&apos;ve been invited as{" "}
+            <span className="font-medium text-ink">{ROLE_LABELS[state.role]}</span>
+            {state.email && (
+              <>
+                {" "}
+                (<span className="font-medium text-ink">{state.email}</span>)
+              </>
+            )}
+            . Choose a password to finish setting up your account.
+          </>
+        )
       }
     >
-      <NewPasswordForm redirectTo={homeForRole(state.role)} submitLabel="Set password & continue" />
+      <NewPasswordForm
+        redirectTo={state.role === "customer" ? "/account/orders" : homeForRole(state.role)}
+        submitLabel="Set password & continue"
+      />
     </AuthCard>
   );
 }
@@ -131,7 +148,7 @@ export function AcceptInvite() {
 function friendlyLinkError(raw: string): string {
   const text = raw.replace(/\+/g, " ").toLowerCase();
   if (text.includes("expired") || text.includes("invalid")) {
-    return "This invite link has expired or was already used. Ask your MultiFe admin to send a new invite.";
+    return "This invite link has expired or was already used. Ask your MultiFe agent or admin to send a new invite.";
   }
-  return "We couldn't open this invite link. Ask your MultiFe admin to send a new invite.";
+  return "We couldn't open this invite link. Ask your MultiFe agent or admin to send a new invite.";
 }

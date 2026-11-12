@@ -29,6 +29,8 @@ export default async function SignInPage({
       footer={
         <>
           New to MultiFe? <AuthLink href="/sign-up">Create an account</AuthLink>
+          <br />
+          Ordered through an agent? <AuthLink href="/sign-in/phone">Sign in with your phone</AuthLink>
         </>
       }
     >

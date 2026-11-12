@@ -14,7 +14,7 @@ import { useSyncedDraft } from "@/components/order/use-synced-draft";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
-import { fabricName, formatMetres, formatPKR, templateImage } from "@/lib/catalog";
+import { fabricName, formatMetres, formatPKR, priceAdjustmentLabel, templateImage } from "@/lib/catalog";
 import { clearDraft } from "@/lib/order-draft";
 
 export function CheckoutPage() {
@@ -29,10 +29,20 @@ function Checkout({ ctx }: { ctx: OrderContext }) {
       <OrderTopBar backHref="/order/measurements" storeName={ctx.brand.name} />
       <main className="flex-1">
         <div className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:px-6 lg:px-8">
-          <PageTitle label="Checkout" title="Confirm Your Order" subtitle="Check everything once more, add your delivery details and place your order." />
+          <PageTitle
+            label="Checkout"
+            title={ctx.orderingFor ? `Confirm ${ctx.orderingFor.name}'s Order` : "Confirm Your Order"}
+            subtitle={
+              ctx.orderingFor
+                ? "Go through everything with the customer, add their delivery details and place the order for them."
+                : "Check everything once more, add your delivery details and place your order."
+            }
+          />
           <div className="mt-8">
             {synced.status === "guest" ? (
               <StepPrompt text="Sign in with your customer account to place your order." href="/sign-in?next=/order/checkout" action="Sign in to continue" />
+            ) : synced.status === "agent-no-customer" ? (
+              <StepPrompt text="To order for someone, start from that customer in your agent panel." href="/agent" action="Go to my customers" />
             ) : synced.status === "repick" ? (
               <StepPrompt text="Some of your style choices are no longer offered for this fabric. Please choose again first." href="/order/review" action="Back to review" />
             ) : synced.status === "error" ? (
@@ -107,7 +117,8 @@ function CheckoutForm({ ctx, draftId, summary }: { ctx: OrderContext; draftId: s
         return;
       }
       clearDraft();
-      router.replace(`/account/orders/${encodeURIComponent(result.data.number)}?placed=1`);
+      const base = result.data.mode === "agent" ? "/agent/orders" : "/account/orders";
+      router.replace(`${base}/${encodeURIComponent(result.data.number)}?placed=1`);
     });
   }
 
@@ -144,6 +155,15 @@ function CheckoutForm({ ctx, draftId, summary }: { ctx: OrderContext; draftId: s
               <dd className="font-bold text-ink">{formatPKR(pricing.optionsCost)}</dd>
             </div>
           )}
+          {pricing.adjustment !== 0 && (
+            <div className="flex items-center justify-between gap-3 py-3">
+              <dt className="text-muted">{priceAdjustmentLabel(pricing.adjustment)}</dt>
+              <dd className={`font-bold ${pricing.adjustment < 0 ? "text-success" : "text-ink"}`}>
+                {pricing.adjustment < 0 ? "−" : "+"}
+                {formatPKR(Math.abs(pricing.adjustment))}
+              </dd>
+            </div>
+          )}
           <div className="flex items-center justify-between gap-3 py-3">
             <dt className="text-muted">Delivery</dt>
             <dd className="font-bold text-success">Free</dd>
@@ -160,7 +180,7 @@ function CheckoutForm({ ctx, draftId, summary }: { ctx: OrderContext; draftId: s
       </aside>
 
       <div className="space-y-6">
-        <Section title="Your measurements" editHref="/order/measurements">
+        <Section title={summary.mode === "agent" ? "Measurements" : "Your measurements"} editHref="/order/measurements">
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
             {summary.measurements.map((m) => (
               <div key={m.key} className="rounded-xl bg-cream/70 px-3 py-2">
@@ -173,7 +193,7 @@ function CheckoutForm({ ctx, draftId, summary }: { ctx: OrderContext; draftId: s
           </dl>
         </Section>
 
-        <Section title={`Your design · ${summary.options.length} choices`} editHref="/order/customize">
+        <Section title={`${summary.mode === "agent" ? "Design" : "Your design"} · ${summary.options.length} choices`} editHref="/order/customize">
           <ul className="flex flex-wrap gap-2">
             {summary.options.map((o) => (
               <li key={o.group} className="rounded-full border border-line bg-white px-3 py-1 text-xs text-ink">
@@ -202,7 +222,7 @@ function CheckoutForm({ ctx, draftId, summary }: { ctx: OrderContext; draftId: s
             </span>
             <div>
               <p className="text-sm font-bold text-ink">Cash on delivery</p>
-              <p className="mt-0.5 text-sm text-muted">Pay {formatPKR(pricing.total)} in cash when your outfit arrives. Online payment is coming soon.</p>
+              <p className="mt-0.5 text-sm text-muted">{summary.mode === "agent" ? "The customer pays" : "Pay"} {formatPKR(pricing.total)} in cash when the outfit arrives. Online payment is coming soon.</p>
             </div>
           </div>
         </Section>

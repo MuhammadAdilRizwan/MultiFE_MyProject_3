@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentAgent } from "@multife/backend/modules/agents/getCurrentAgent";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
+import { AgentNav } from "@/components/agent/agent-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Logo } from "@/components/brand/logo";
 import { createClient } from "@/lib/supabase/server";
@@ -38,6 +39,7 @@ export default async function AgentLayout({ children }: { children: ReactNode })
             <SignOutButton />
           </div>
         </div>
+        {agent && agent.status === "active" && <AgentNav />}
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         {agent && agent.status === "active" ? (

@@ -7,7 +7,7 @@ import { createDraftAction, updateDraftOptionsAction } from "@/app/(order)/order
 import { readDraft, updateDraft } from "./order-draft";
 import { ensureRemoteDraft, syncRemoteOptions } from "./order-sync";
 
-const base = { brandSlug: "khadi", fabricId: "f1", templateId: "t1", selections: {}, labels: {}, remote: null };
+const base = { brandSlug: "khadi", fabricId: "f1", templateId: "t1", selections: {}, labels: {}, remote: null, actingFor: null };
 
 beforeEach(() => {
   vi.mocked(createDraftAction).mockReset();
@@ -29,7 +29,27 @@ describe("ensureRemoteDraft", () => {
 
     expect(await ensureRemoteDraft()).toEqual({ ok: true, data: "d2" });
     expect(createDraftAction).toHaveBeenCalledWith({ fabricId: "f1", templateId: "t1" });
-    expect(updateDraft).toHaveBeenCalledWith({ remote: { id: "d2", fabricId: "f1", templateId: "t1" } });
+    expect(updateDraft).toHaveBeenCalledWith({ remote: { id: "d2", fabricId: "f1", templateId: "t1", customerId: null } });
+  });
+
+  it("creates the draft for the customer an agent is ordering for", async () => {
+    vi.mocked(readDraft).mockReturnValue({ ...base, actingFor: { customerId: "c9", name: "Sana" } });
+    vi.mocked(createDraftAction).mockResolvedValue({ ok: true, data: { id: "d3" } as never });
+
+    expect(await ensureRemoteDraft()).toEqual({ ok: true, data: "d3" });
+    expect(createDraftAction).toHaveBeenCalledWith({ fabricId: "f1", templateId: "t1", customerId: "c9" });
+    expect(updateDraft).toHaveBeenCalledWith({ remote: { id: "d3", fabricId: "f1", templateId: "t1", customerId: "c9" } });
+  });
+
+  it("doesn't reuse a draft made for a different customer", async () => {
+    vi.mocked(readDraft).mockReturnValue({
+      ...base,
+      actingFor: { customerId: "c2", name: "Other" },
+      remote: { id: "d1", fabricId: "f1", templateId: "t1", customerId: "c1" },
+    });
+    vi.mocked(createDraftAction).mockResolvedValue({ ok: true, data: { id: "d4" } as never });
+
+    expect(await ensureRemoteDraft()).toEqual({ ok: true, data: "d4" });
   });
 
   it("passes the server's refusal through (e.g. not signed in as a customer)", async () => {

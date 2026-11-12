@@ -24,7 +24,9 @@ export function OrderGate({
   children: (ctx: OrderContext) => ReactNode;
 }) {
   const draft = useDraft();
-  const key = draft?.brandSlug && draft.fabricId ? `${draft.brandSlug}|${draft.fabricId}|${draft.templateId ?? ""}` : null;
+  const actingFor = draft?.actingFor?.customerId ?? null;
+  const key =
+    draft?.brandSlug && draft.fabricId ? `${draft.brandSlug}|${draft.fabricId}|${draft.templateId ?? ""}|${actingFor ?? ""}` : null;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const brandSlug = draft?.brandSlug;
   const fabricId = draft?.fabricId;
@@ -33,7 +35,7 @@ export function OrderGate({
   useEffect(() => {
     if (!key || !brandSlug || !fabricId) return;
     let cancelled = false;
-    getOrderContextAction({ brandSlug, fabricId, templateId })
+    getOrderContextAction({ brandSlug, fabricId, templateId, actingForCustomerId: actingFor })
       .then((result) => {
         if (!cancelled) setLoaded({ key, result });
       })
@@ -43,7 +45,7 @@ export function OrderGate({
     return () => {
       cancelled = true;
     };
-  }, [key, brandSlug, fabricId, templateId]);
+  }, [key, brandSlug, fabricId, templateId, actingFor]);
 
   if (draft && !key) return <StartAgain />;
   const result = loaded?.key === key ? loaded.result : null;

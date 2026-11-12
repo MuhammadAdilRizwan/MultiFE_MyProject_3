@@ -9,7 +9,7 @@ export async function listMyCustomers(
 ): Promise<AssignedCustomerRow[]> {
   const { data, error } = await supabase
     .from("agent_customers")
-    .select("id, customer_id, acquired_at, source, customer:profiles(full_name, phone, is_provisional)")
+    .select("id, customer_id, acquired_at, source, customer:profiles(full_name, email, phone, is_provisional)")
     .eq("agent_id", agentId)
     .order("acquired_at", { ascending: false });
   if (error) throw error;
