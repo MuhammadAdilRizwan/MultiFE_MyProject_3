@@ -10,13 +10,22 @@ import type { OrderDetail } from "@/lib/customer-orders";
 import { MILESTONES, formatOrderDate, isClosedWithoutDelivery, milestoneIndex, orderStatusLabel } from "@/lib/order-status";
 import { formatPhone } from "@/lib/phone";
 
+const BACK_HREF = { customer: "/account/orders", agent: "/agent/orders", admin: "/admin/orders" } as const;
+
+const CHANNEL_LABEL: Record<string, string> = {
+  self_serve: "Placed by the customer",
+  agent_assisted: "Placed with an agent's help",
+  agent_placed: "Placed by an agent",
+};
+
 const measurementLabel = (key: string) => {
   const text = key.replace(/_/g, " ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
 // One order's progress, price, design, measurements and history — for the
-// customer (/account/orders) or the agent who placed it (/agent/orders).
+// customer (/account/orders), the agent who placed it (/agent/orders), or an
+// admin (/admin/orders).
 export function OrderDetailView({
   order,
   placed,
@@ -24,7 +33,7 @@ export function OrderDetailView({
 }: {
   order: OrderDetail;
   placed: boolean;
-  audience: "customer" | "agent";
+  audience: "customer" | "agent" | "admin";
 }) {
   const reached = milestoneIndex(order.status);
   const closed = isClosedWithoutDelivery(order.status);
@@ -33,7 +42,7 @@ export function OrderDetailView({
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
-      <BackLink href={audience === "agent" ? "/agent/orders" : "/account/orders"} label="All orders" />
+      <BackLink href={BACK_HREF[audience]} label="All orders" />
 
       {placed && (
         <div className="mt-4">
@@ -129,7 +138,7 @@ export function OrderDetailView({
             </p>
           </div>
 
-          {audience === "agent" && (
+          {audience !== "customer" && (
             <Card title="Customer">
               <p className="text-sm leading-6 text-ink">
                 <span className="font-semibold">{order.customerName ?? "Customer"}</span>
@@ -137,6 +146,12 @@ export function OrderDetailView({
                   <>
                     <br />
                     <span className="text-muted">{formatPhone(order.customerPhone)}</span>
+                  </>
+                )}
+                {audience === "admin" && (
+                  <>
+                    <br />
+                    <span className="text-muted">{CHANNEL_LABEL[order.channel] ?? order.channel}</span>
                   </>
                 )}
               </p>

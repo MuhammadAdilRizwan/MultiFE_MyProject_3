@@ -67,3 +67,19 @@ export const CANCEL_REASONS = [
   "Delivery takes too long",
   "Other",
 ] as const;
+
+// Status groups for the admin orders list (FR-ADM-06). "all" has no filter.
+export const ADMIN_ORDER_FILTERS = [
+  { key: "all", label: "All", statuses: [] },
+  { key: "open", label: "Open", statuses: ["placed", "fabric_secured", "received_at_hub", "measurements_approved", "in_cutting", "in_stitching", "in_qc", "ready_to_ship", "dispatched"] },
+  { key: "new", label: "New", statuses: ["placed"] },
+  { key: "production", label: "In production", statuses: ["fabric_secured", "received_at_hub", "measurements_approved", "in_cutting", "in_stitching", "in_qc"] },
+  { key: "shipping", label: "Shipping", statuses: ["ready_to_ship", "dispatched"] },
+  { key: "delivered", label: "Delivered", statuses: ["delivered"] },
+  { key: "closed", label: "Cancelled", statuses: ["cancelled", "failed"] },
+] as const;
+
+export type AdminOrderFilterKey = (typeof ADMIN_ORDER_FILTERS)[number]["key"];
+
+export const adminOrderFilter = (key: string | undefined) =>
+  ADMIN_ORDER_FILTERS.find((f) => f.key === key) ?? ADMIN_ORDER_FILTERS[0];

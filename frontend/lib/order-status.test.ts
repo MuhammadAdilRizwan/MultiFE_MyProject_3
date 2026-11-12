@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MILESTONES, isClosedWithoutDelivery, milestoneIndex, orderStatusLabel } from "./order-status";
+import { ADMIN_ORDER_FILTERS, MILESTONES, adminOrderFilter, isClosedWithoutDelivery, milestoneIndex, orderStatusLabel } from "./order-status";
 
 describe("orderStatusLabel", () => {
   it("names every order status for the customer", () => {
@@ -33,5 +33,21 @@ describe("milestoneIndex", () => {
     const all = MILESTONES.flatMap((m) => [...m.statuses]);
     expect(new Set(all).size).toBe(all.length);
     expect(all).toHaveLength(10);
+  });
+});
+
+describe("admin order filters", () => {
+  const every = ["placed", "fabric_secured", "received_at_hub", "measurements_approved", "in_cutting", "in_stitching", "in_qc", "ready_to_ship", "dispatched", "delivered", "cancelled", "failed"];
+
+  it("open + delivered + cancelled cover every status exactly once", () => {
+    const pick = (k: string) => ADMIN_ORDER_FILTERS.find((f) => f.key === k)!.statuses as readonly string[];
+    const covered = [...pick("open"), ...pick("delivered"), ...pick("closed")];
+    expect([...covered].sort()).toEqual([...every].sort());
+  });
+
+  it("falls back to All for an unknown key", () => {
+    expect(adminOrderFilter("nope").key).toBe("all");
+    expect(adminOrderFilter(undefined).statuses).toEqual([]);
+    expect(adminOrderFilter("shipping").statuses).toEqual(["ready_to_ship", "dispatched"]);
   });
 });

@@ -4,6 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
+  { href: "/admin", label: "Dashboard" },
+  { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/users", label: "Users" },
   { href: "/admin/stores", label: "Stores" },
   { href: "/admin/templates", label: "Templates" },
   { href: "/admin/invite", label: "Invite users" },
@@ -14,7 +17,8 @@ export function AdminNav() {
   return (
     <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8" aria-label="Admin">
       {LINKS.map((link) => {
-        const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+        // The dashboard ("/admin") is only active on itself, not every admin page.
+        const active = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(`${link.href}/`));
         return (
           <Link
             key={link.href}

@@ -9,8 +9,10 @@ import { createClient } from "@/lib/supabase/server";
 // rows — never the admin client. The extra column filter just picks which of
 // the two views the page wants.
 
-export type OrderScope = "customer" | "agent";
-const SCOPE_COLUMN: Record<OrderScope, string> = { customer: "customer_id", agent: "agent_id" };
+// "admin" adds no column filter: "orders: admin all" (an active admin) is
+// what lets every order through.
+export type OrderScope = "customer" | "agent" | "admin";
+const SCOPE_COLUMN: Record<OrderScope, string | null> = { customer: "customer_id", agent: "agent_id", admin: null };
 
 export type OrderListItem = {
   number: string;
@@ -96,13 +98,39 @@ export async function listMyOrders(scope: OrderScope = "customer"): Promise<Orde
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return [];
 
-  const { data, error } = await supabase
-    .from("orders")
-    .select(ORDER_COLUMNS)
-    .eq(SCOPE_COLUMN[scope], auth.user.id)
-    .order("created_at", { ascending: false });
+  let query = supabase.from("orders").select(ORDER_COLUMNS).order("created_at", { ascending: false });
+  const column = SCOPE_COLUMN[scope];
+  if (column) query = query.eq(column, auth.user.id);
+  const { data, error } = await query;
   if (error) throw error;
   return (data as unknown as OrderRow[]).map(toListItem);
+}
+
+export const ADMIN_ORDERS_PAGE_SIZE = 25;
+
+export type AdminOrderFilter = { statuses?: readonly string[]; search?: string; page?: number };
+
+// Every order, for the admin panel (FR-ADM-06): newest first, filtered by a
+// status group and by order number or customer name, a page at a time.
+export async function listAllOrders(filter: AdminOrderFilter = {}): Promise<{ orders: OrderListItem[]; total: number }> {
+  const supabase = await createClient();
+  const page = Math.max(1, Math.floor(filter.page ?? 1));
+  const term = (filter.search ?? "").replace(/[^\p{L}\p{N}\s-]/gu, "").trim().slice(0, 60);
+  const byNumber = /^(mf-?)?[\d-]+$/i.test(term);
+  // Searching by name needs the customer join to filter the orders (!inner).
+  const columns = term && !byNumber ? ORDER_COLUMNS.replace("customer:profiles!orders_customer_id_fkey(", "customer:profiles!orders_customer_id_fkey!inner(") : ORDER_COLUMNS;
+
+  let query = supabase
+    .from("orders")
+    .select(columns, { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range((page - 1) * ADMIN_ORDERS_PAGE_SIZE, page * ADMIN_ORDERS_PAGE_SIZE - 1);
+  if (filter.statuses?.length) query = query.in("status", [...filter.statuses]);
+  if (term) query = byNumber ? query.ilike("number", `%${term}%`) : query.ilike("customer.full_name", `%${term}%`);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+  return { orders: (data as unknown as OrderRow[]).map(toListItem), total: count ?? 0 };
 }
 
 export async function getMyOrder(number: string, scope: OrderScope = "customer"): Promise<OrderDetail | null> {
@@ -110,12 +138,10 @@ export async function getMyOrder(number: string, scope: OrderScope = "customer")
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return null;
 
-  const { data, error } = await supabase
-    .from("orders")
-    .select(ORDER_COLUMNS)
-    .eq(SCOPE_COLUMN[scope], auth.user.id)
-    .eq("number", number)
-    .maybeSingle();
+  let query = supabase.from("orders").select(ORDER_COLUMNS).eq("number", number);
+  const column = SCOPE_COLUMN[scope];
+  if (column) query = query.eq(column, auth.user.id);
+  const { data, error } = await query.maybeSingle();
   if (error) throw error;
   if (!data) return null;
   const row = data as unknown as OrderRow;
