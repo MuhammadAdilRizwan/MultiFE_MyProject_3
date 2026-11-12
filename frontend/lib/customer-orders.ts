@@ -38,11 +38,13 @@ export type OrderDetail = OrderListItem & {
   options: ResolvedOption[];
   measurements: Record<string, number>;
   history: { status: string; at: string }[];
+  // Why it was cancelled or failed, as given by the customer, agent or admin.
+  cancelledReason: string | null;
 };
 
 const ORDER_COLUMNS = `
   id, number, status, total, created_at, est_delivery_date, payment_method, payment_status, order_channel,
-  yardage_metres, fabric_cost, stitch_cost, options_cost, delivery_address,
+  yardage_metres, fabric_cost, stitch_cost, options_cost, delivery_address, cancelled_reason,
   supplier:suppliers(name),
   customer:profiles!orders_customer_id_fkey(full_name, phone),
   fabric:fabrics(name, display_name, images:fabric_images(url, sort)),
@@ -65,6 +67,7 @@ type OrderRow = {
   stitch_cost: number | string;
   options_cost: number | string;
   delivery_address: OrderDetail["delivery"];
+  cancelled_reason: string | null;
   supplier: { name: string } | null;
   fabric: { name: string; display_name: string | null; images: { url: string; sort: number }[] } | null;
   items: { template_name: string; options: unknown; measurements: Record<string, number> | null }[];
@@ -137,5 +140,6 @@ export async function getMyOrder(number: string, scope: OrderScope = "customer")
     options: Array.isArray(item?.options) ? (item.options as ResolvedOption[]) : [],
     measurements: item?.measurements ?? {},
     history: (history ?? []).map((h) => ({ status: h.to_status as string, at: h.created_at as string })),
+    cancelledReason: row.cancelled_reason,
   };
 }

@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@multife/backend/modules/users/getActor", () => ({ getCurrentProfile: vi.fn() }));
+vi.mock("@multife/backend/modules/users/myProfile", () => ({ getMyProfile: vi.fn() }));
 vi.mock("@/lib/draft-pricing", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/draft-pricing")>()),
   loadAndPriceDraft: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock("@multife/backend/modules/agents/saveAgentMeasurements", () => ({ saveAg
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
+import { getMyProfile } from "@multife/backend/modules/users/myProfile";
 import { loadAndPriceDraft } from "@/lib/draft-pricing";
 import { getLatestConfirmedProfile } from "@multife/backend/modules/measurements/getMeasurementProfile";
 import { saveConfirmedMeasurements } from "@multife/backend/modules/measurements/saveConfirmedMeasurements";
@@ -91,6 +93,7 @@ beforeEach(() => {
   vi.mocked(createClient).mockResolvedValue(session as never);
   vi.mocked(createAdminClient).mockReturnValue(service as never);
   vi.mocked(getCurrentProfile).mockResolvedValue(customer as never);
+  vi.mocked(getMyProfile).mockResolvedValue(null);
   vi.mocked(loadAndPriceDraft).mockResolvedValue(ctx() as never);
 });
 
@@ -215,9 +218,24 @@ describe("getCheckoutAction", () => {
         { group: "neck-finish", group_label: "Front / Back Finish", value: "embroidered-front", label: "Embroidered Front", price_delta: 600 },
       ],
       estDeliveryDate: expected.toISOString().slice(0, 10),
-      contact: { fullName: "Ayesha", phone: "03001234567" },
+      contact: { fullName: "Ayesha", phone: "03001234567", addressLine: "", city: "" },
       mode: "customer",
     });
+  });
+
+  it("prefills the customer's saved details and address", async () => {
+    vi.mocked(getMyProfile).mockResolvedValue({
+      fullName: "Ayesha Malik",
+      phone: "+923001112222",
+      email: null,
+      address: { address_line: "House 4, Street 9, F-7", city: "Islamabad" },
+    });
+    const result = await getCheckoutAction({ draftId });
+    expect(result).toMatchObject({
+      ok: true,
+      data: { contact: { fullName: "Ayesha Malik", phone: "+923001112222", addressLine: "House 4, Street 9, F-7", city: "Islamabad" } },
+    });
+    expect(getMyProfile).toHaveBeenCalledWith(session, customer.id);
   });
 });
 

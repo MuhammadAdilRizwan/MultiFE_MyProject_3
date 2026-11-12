@@ -14,6 +14,7 @@ import { DELIVERY_DAYS, resolveSelection, type ResolvedOption } from "@multife/b
 import type { PriceBreakdown } from "@multife/backend/modules/rules/priceOrder";
 import { validateMeasurements, type MeasurementField } from "@multife/backend/modules/rules/validateMeasurements";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
+import { getMyProfile } from "@multife/backend/modules/users/myProfile";
 import type { AnySupabaseClient, ProfileRow } from "@multife/backend/modules/users/types";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
 import { isActionResult, loadAndPriceDraft, type LoadedDraftContext } from "@/lib/draft-pricing";
@@ -196,8 +197,9 @@ export type CheckoutSummary = {
   measurements: { key: string; label: string; unit: string; value: number }[];
   options: ResolvedOption[];
   estDeliveryDate: string;
-  // Prefill for the delivery form: the customer's own details.
-  contact: { fullName: string; phone: string };
+  // Prefill for the delivery form: the customer's own details and saved
+  // address (FR-CUS-16); empty strings when there are none.
+  contact: { fullName: string; phone: string; addressLine: string; city: string };
   mode: "customer" | "agent";
 };
 
@@ -226,11 +228,19 @@ export async function getCheckoutAction(input: z.infer<typeof draftSchema>): Pro
       return fail("Some of your choices are no longer offered for this fabric. Please review your design.");
     }
 
-    let contact = { fullName: actor.full_name ?? "", phone: displayPhone(actor.phone) };
+    let contact: CheckoutSummary["contact"];
     if (mode === "agent") {
       const agent = await getCurrentAgent(supabase);
       const customer = agent ? await getMyCustomer(supabase, agent.id, ctx.draft.customer_id as string) : null;
-      contact = { fullName: customer?.fullName ?? "", phone: displayPhone(customer?.phone) };
+      contact = { fullName: customer?.fullName ?? "", phone: displayPhone(customer?.phone), addressLine: "", city: "" };
+    } else {
+      const mine = await getMyProfile(supabase, actor.id);
+      contact = {
+        fullName: mine?.fullName || actor.full_name || "",
+        phone: displayPhone(mine?.phone ?? actor.phone),
+        addressLine: mine?.address?.address_line ?? "",
+        city: mine?.address?.city ?? "",
+      };
     }
 
     const values = ctx.profile.measurement_values;

@@ -96,8 +96,8 @@ function CheckoutForm({ ctx, draftId, summary }: { ctx: OrderContext; draftId: s
   const [delivery, setDelivery] = useState({
     fullName: summary.contact.fullName,
     phone: summary.contact.phone,
-    addressLine: "",
-    city: "",
+    addressLine: summary.contact.addressLine,
+    city: summary.contact.city,
   });
   // One key per checkout visit: a retried tap can't create a second order.
   const [idempotencyKey] = useState(() => crypto.randomUUID());

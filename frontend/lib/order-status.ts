@@ -58,3 +58,12 @@ export const formatOrderDate = (iso: string) =>
     month: "short",
     year: "numeric",
   });
+
+// Why a customer cancels (FR-CUS-14); "Other" asks for a short note.
+export const CANCEL_REASONS = [
+  "Ordered by mistake",
+  "Changed my mind",
+  "Want a different fabric or design",
+  "Delivery takes too long",
+  "Other",
+] as const;

@@ -1,8 +1,10 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { canCustomerCancel } from "@multife/backend/modules/orders/cancelOrder";
 import { BackLink } from "@/components/layout/back-link";
 import { Alert } from "@/components/ui/alert";
 import { HeadingRule } from "@/components/ui/heading";
+import { CancelOrder } from "@/components/orders/cancel-order";
 import { formatMetres, formatPKR, priceAdjustmentLabel } from "@/lib/catalog";
 import type { OrderDetail } from "@/lib/customer-orders";
 import { MILESTONES, formatOrderDate, isClosedWithoutDelivery, milestoneIndex, orderStatusLabel } from "@/lib/order-status";
@@ -66,7 +68,10 @@ export function OrderDetailView({
 
       <section aria-label="Order progress" className="mt-8 rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
         {closed ? (
-          <p className="text-base font-bold text-danger">{orderStatusLabel(order.status)}</p>
+          <>
+            <p className="text-base font-bold text-danger">{orderStatusLabel(order.status)}</p>
+            {order.cancelledReason && <p className="mt-1 text-sm text-muted">Reason: {order.cancelledReason}</p>}
+          </>
         ) : (
           <>
             <ol className="grid grid-cols-5 gap-1 sm:gap-2">
@@ -85,6 +90,7 @@ export function OrderDetailView({
                 </>
               )}
             </p>
+            {audience === "customer" && canCustomerCancel(order.status) && <CancelOrder orderNumber={order.number} isCod={isCod} />}
           </>
         )}
       </section>

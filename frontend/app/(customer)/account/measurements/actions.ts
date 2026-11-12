@@ -3,9 +3,8 @@
 import { z } from "zod";
 import { getLatestConfirmedProfile } from "@multife/backend/modules/measurements/getMeasurementProfile";
 import { saveMyMeasurements, validateMyMeasurements } from "@multife/backend/modules/measurements/saveMyMeasurements";
-import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
-import { createClient } from "@/lib/supabase/server";
+import { activeCustomer } from "@/lib/active-customer";
 
 // Saved measurements in the customer's account (FR-CUS-15). Runs on the
 // customer's own session, so RLS keeps each customer to their own profiles.
@@ -20,13 +19,6 @@ export type SavedMeasurements = {
 
 const NOT_CUSTOMER = "Sign in with your customer account to manage your measurements.";
 const GENERIC_ERROR = "We couldn't save your measurements. Please try again.";
-
-async function activeCustomer() {
-  const supabase = await createClient();
-  const profile = await getCurrentProfile(supabase);
-  if (!profile || profile.role !== "customer" || profile.status !== "active") return null;
-  return { supabase, customerId: profile.id };
-}
 
 const toSaved = (row: Awaited<ReturnType<typeof getLatestConfirmedProfile>>): SavedMeasurements =>
   row?.confirmed_at
