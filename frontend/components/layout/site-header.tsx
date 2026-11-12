@@ -19,12 +19,15 @@ export async function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Logo />
 
-        <nav className="hidden items-center gap-8 text-sm font-semibold text-muted lg:flex" aria-label="Primary">
-          {/* The intro sections only exist for guests ("/" sends signed-in users to /brands). */}
-          {!profile && <Link className="transition-colors hover:text-ocean" href="/#why-multife">Why MultiFe</Link>}
-          {!profile && <Link className="transition-colors hover:text-ocean" href="/#how-it-works">How it works</Link>}
-          <Link className="transition-colors hover:text-ocean" href="/brands">Brands</Link>
-        </nav>
+        {/* Guests only: the intro sections exist only for them ("/" sends signed-in
+            users to /brands), and the logo already takes signed-in users to the brands. */}
+        {!profile && (
+          <nav className="hidden items-center gap-8 text-sm font-semibold text-muted lg:flex" aria-label="Primary">
+            <Link className="transition-colors hover:text-ocean" href="/#why-multife">Why MultiFe</Link>
+            <Link className="transition-colors hover:text-ocean" href="/#how-it-works">How it works</Link>
+            <Link className="transition-colors hover:text-ocean" href="/brands">Brands</Link>
+          </nav>
+        )}
 
         <div className="flex items-center gap-2 sm:gap-3">
           {profile ? (
