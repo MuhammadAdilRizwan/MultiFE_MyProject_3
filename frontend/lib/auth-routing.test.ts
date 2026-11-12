@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import { homeForRole, safeNextPath } from "./auth-routing";
 
 describe("homeForRole", () => {
-  it("sends admins and agents to their panels", () => {
+  it("sends admins to their panel", () => {
     expect(homeForRole("admin")).toBe("/admin");
-    expect(homeForRole("agent")).toBe("/agent");
+  });
+
+  it("sends agents to the brands (their panel is one tap away)", () => {
+    expect(homeForRole("agent")).toBe("/brands");
   });
 
   it("sends customers and roles without a panel yet to the brands", () => {

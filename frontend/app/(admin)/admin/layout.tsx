@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { Logo } from "@/components/brand/logo";
+import { ViewBrandsLink } from "@/components/layout/workspace-switch";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { createClient } from "@/lib/supabase/server";
@@ -21,7 +22,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               Admin
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ViewBrandsLink />
             <span className="hidden max-w-[16rem] truncate text-sm text-muted md:inline">
               {profile.full_name ?? profile.email}
             </span>

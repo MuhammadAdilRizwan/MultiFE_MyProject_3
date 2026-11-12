@@ -7,7 +7,7 @@ import { Alert } from "@/components/ui/alert";
 import { HeadingRule } from "@/components/ui/heading";
 import { getSupplierForAdmin, listOptionVocabulary, vocabularyAsOffered } from "@/lib/admin-catalog";
 import { fabricName } from "@/lib/catalog";
-import { buildSteps } from "@/lib/customization";
+import { LAYOUT_VOCABULARY, buildSteps } from "@/lib/customization";
 
 export const metadata: Metadata = { title: "Confirm customizations" };
 
@@ -21,10 +21,16 @@ export default async function FabricCustomizationPage({ params }: { params: Prom
   if (!supplier || !fabricResult.ok || fabricResult.data.supplier_id !== supplier.id) notFound();
   const fabric = fabricResult.data;
 
-  const [vocabulary, siblingsResult] = await Promise.all([
+  const [fullVocabulary, siblingsResult] = await Promise.all([
     listOptionVocabulary().catch(() => null),
     listFabricsAction({ supplierId: supplier.id }),
   ]);
+
+  // Only the 15-step customization list is offered for confirmation. Legacy
+  // groups outside it (sleeve, cuff, bottom, closure from the first test
+  // vocabulary) would otherwise land in a "More details" section.
+  const layoutGroups = new Set(LAYOUT_VOCABULARY.map((g) => g.key));
+  const vocabulary = fullVocabulary?.filter((g) => layoutGroups.has(g.key)) ?? null;
 
   // Only keys that are in our customization list can be ticked or saved.
   const known = new Set((vocabulary ?? []).flatMap((g) => g.values.map((v) => `${g.key}|${v.key}`)));

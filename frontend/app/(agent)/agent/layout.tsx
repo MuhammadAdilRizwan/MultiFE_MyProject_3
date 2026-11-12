@@ -5,6 +5,7 @@ import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { AgentNav } from "@/components/agent/agent-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Logo } from "@/components/brand/logo";
+import { ViewBrandsLink } from "@/components/layout/workspace-switch";
 import { createClient } from "@/lib/supabase/server";
 
 // Always per-request: every page here reads the signed-in agent's session.
@@ -31,7 +32,8 @@ export default async function AgentLayout({ children }: { children: ReactNode })
               Agent
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ViewBrandsLink />
             <span className="hidden max-w-[16rem] truncate text-right text-sm text-muted md:inline">
               {profile.full_name ?? profile.email}
               {agent && <span className="ml-2 font-semibold text-ink">{agent.code}</span>}

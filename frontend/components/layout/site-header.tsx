@@ -1,15 +1,21 @@
 import Link from "next/link";
+import { getCurrentAgent } from "@multife/backend/modules/agents/getCurrentAgent";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { ActingForBar } from "@/components/agent/acting-for-bar";
 import { Logo } from "@/components/brand/logo";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { StaffBar } from "@/components/layout/workspace-switch";
 import { createClient } from "@/lib/supabase/server";
 
 export async function SiteHeader() {
-  const profile = await getCurrentProfile(await createClient());
+  const supabase = await createClient();
+  const profile = await getCurrentProfile(supabase);
+  const staffRole = profile?.status === "active" && (profile.role === "agent" || profile.role === "admin") ? profile.role : null;
+  const agent = staffRole === "agent" ? await getCurrentAgent(supabase).catch(() => null) : null;
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-white/70 backdrop-blur-xl">
+      {staffRole && <StaffBar role={staffRole} detail={agent?.code ?? null} />}
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Logo />
 
@@ -23,22 +29,6 @@ export async function SiteHeader() {
         <div className="flex items-center gap-2 sm:gap-3">
           {profile ? (
             <>
-              {profile.role === "admin" && (
-                <Link
-                  href="/admin"
-                  className="hidden h-11 items-center rounded-full px-3 text-sm font-semibold text-ocean hover:underline sm:inline-flex"
-                >
-                  Admin
-                </Link>
-              )}
-              {profile.role === "agent" && (
-                <Link
-                  href="/agent"
-                  className="inline-flex h-11 items-center rounded-full px-3 text-sm font-semibold text-ocean hover:underline"
-                >
-                  Agent panel
-                </Link>
-              )}
               {profile.role === "customer" && (
                 <Link
                   href="/account/orders"

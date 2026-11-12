@@ -1,11 +1,10 @@
 import type { AppRole } from "@multife/backend/modules/users/types";
 
-// Where each role lands after signing in: admins and agents on their panel,
-// everyone else at the brands (panels not built yet fall back there rather
-// than a dead link).
+// Where each role lands after signing in: admins on their panel; agents and
+// everyone else at the brands (agents switch to their panel from the staff
+// bar; panels not built yet fall back there rather than a dead link).
 export function homeForRole(role: AppRole | string | null | undefined): string {
   if (role === "admin") return "/admin";
-  if (role === "agent") return "/agent";
   return "/brands";
 }
 
