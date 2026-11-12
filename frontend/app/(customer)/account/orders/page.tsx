@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { AccountTabs } from "@/components/account/account-tabs";
 import { BackLink } from "@/components/layout/back-link";
 import { PageTitle } from "@/components/order/page-title";
 import { Alert } from "@/components/ui/alert";
@@ -25,6 +26,7 @@ export default async function OrdersPage() {
       <div className="mt-4">
         <PageTitle label="Your account" title="My Orders" subtitle="Every outfit you've ordered, and where it is now." />
       </div>
+      <AccountTabs active="orders" />
 
       {orders === null ? (
         <div className="mx-auto mt-10 max-w-md">
