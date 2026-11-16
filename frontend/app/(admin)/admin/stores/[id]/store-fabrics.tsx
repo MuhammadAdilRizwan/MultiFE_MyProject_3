@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import type { FabricStock } from "@multife/backend/modules/catalog/getFabricStock";
 import type { FabricRow } from "@multife/backend/modules/catalog/types";
 import { setFabricAvailabilityAction } from "@/app/(admin)/catalog-actions";
 import { Alert } from "@/components/ui/alert";
@@ -12,7 +13,15 @@ import { fabricName, formatMetres, formatPKR } from "@/lib/catalog";
 const optionCount = (fabric: FabricRow) =>
   Object.values(fabric.supported_options ?? {}).reduce((n, values) => n + values.length, 0);
 
-export function StoreFabrics({ supplierId, fabrics }: { supplierId: string; fabrics: FabricRow[] }) {
+export function StoreFabrics({
+  supplierId,
+  fabrics,
+  stock,
+}: {
+  supplierId: string;
+  fabrics: FabricRow[];
+  stock: Record<string, FabricStock>;
+}) {
   if (fabrics.length === 0) {
     return (
       <div className={`${cardClasses} p-8 text-center`}>
@@ -24,13 +33,13 @@ export function StoreFabrics({ supplierId, fabrics }: { supplierId: string; fabr
   return (
     <ul className="space-y-3">
       {fabrics.map((f) => (
-        <FabricRowItem key={f.id} supplierId={supplierId} fabric={f} />
+        <FabricRowItem key={f.id} supplierId={supplierId} fabric={f} stock={stock[f.id]} />
       ))}
     </ul>
   );
 }
 
-function FabricRowItem({ supplierId, fabric }: { supplierId: string; fabric: FabricRow }) {
+function FabricRowItem({ supplierId, fabric, stock }: { supplierId: string; fabric: FabricRow; stock?: FabricStock }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +66,13 @@ function FabricRowItem({ supplierId, fabric }: { supplierId: string; fabric: Fab
         <div className="min-w-0">
           <p className="text-base font-extrabold tracking-tight text-ink">{fabricName(fabric)}</p>
           <p className="mt-0.5 text-sm text-muted">
-            {formatPKR(fabric.price_per_metre)} / m · {formatMetres(fabric.stock_metres)} in stock
+            {formatPKR(fabric.price_per_metre)} / m ·{" "}
+            {stock
+              ? `${formatMetres(stock.availableMetres)} available` +
+                (stock.reservedMetres > 0
+                  ? ` (${formatMetres(fabric.stock_metres)} in stock, ${formatMetres(stock.reservedMetres)} held for orders)`
+                  : "")
+              : `${formatMetres(fabric.stock_metres)} in stock`}
             {fabric.is_hidden && " · Hidden"}
           </p>
           <p className="mt-2">

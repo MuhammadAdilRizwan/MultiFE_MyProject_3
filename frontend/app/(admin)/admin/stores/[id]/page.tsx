@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { listFabricsAction } from "@/app/(storefront)/catalog-actions";
+import { getFabricStockAction, listFabricsAction } from "@/app/(storefront)/catalog-actions";
 import { Alert } from "@/components/ui/alert";
 import { HeadingRule } from "@/components/ui/heading";
 import { getSupplierForAdmin } from "@/lib/admin-catalog";
@@ -17,6 +17,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
   if (!supplier) notFound();
   // Admin session: RLS returns every fabric of this store, hidden or not.
   const result = await listFabricsAction({ supplierId: supplier.id });
+  const stock = result.ok ? await getFabricStockAction({ fabricIds: result.data.map((f) => f.id) }) : null;
 
   return (
     <div>
@@ -33,7 +34,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
       </div>
       <div className="mt-8">
         {result.ok ? (
-          <StoreFabrics supplierId={supplier.id} fabrics={result.data} />
+          <StoreFabrics supplierId={supplier.id} fabrics={result.data} stock={stock?.ok ? stock.data : {}} />
         ) : (
           <Alert tone="danger">We couldn&apos;t load this store&apos;s fabrics. Please refresh.</Alert>
         )}

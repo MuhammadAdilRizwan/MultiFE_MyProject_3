@@ -16,7 +16,6 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import { fabricName, formatMetres, formatPKR, priceAdjustmentLabel, templateImage } from "@/lib/catalog";
-import { clearDraft } from "@/lib/order-draft";
 
 export function CheckoutPage() {
   return <OrderGate needTemplate>{(ctx) => <Checkout ctx={ctx} />}</OrderGate>;
@@ -117,7 +116,8 @@ function CheckoutForm({ ctx, draftId, summary }: { ctx: OrderContext; draftId: s
         setError(result.error);
         return;
       }
-      clearDraft();
+      // The confirmation page clears the draft (ClearPlacedDraft); clearing it
+      // here would show "Start by choosing a fabric" until that page loads.
       const base = result.data.mode === "agent" ? "/agent/orders" : "/account/orders";
       router.replace(`${base}/${encodeURIComponent(result.data.number)}?placed=1`);
     });
