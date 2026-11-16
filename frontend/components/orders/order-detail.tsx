@@ -5,6 +5,7 @@ import { BackLink } from "@/components/layout/back-link";
 import { Alert } from "@/components/ui/alert";
 import { HeadingRule } from "@/components/ui/heading";
 import { CancelOrder } from "@/components/orders/cancel-order";
+import { ClearPlacedDraft } from "@/components/orders/clear-placed-draft";
 import { formatMetres, formatPKR, priceAdjustmentLabel } from "@/lib/catalog";
 import type { OrderDetail } from "@/lib/customer-orders";
 import { MILESTONES, formatOrderDate, isClosedWithoutDelivery, milestoneIndex, orderStatusLabel } from "@/lib/order-status";
@@ -44,6 +45,7 @@ export function OrderDetailView({
     <div className="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
       <BackLink href={BACK_HREF[audience]} label="All orders" />
 
+      {placed && <ClearPlacedDraft />}
       {placed && (
         <div className="mt-4">
           <Alert tone="success">

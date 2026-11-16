@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { getFabric } from "@multife/backend/modules/catalog/getFabric";
+import { getFabricStock, type FabricStock } from "@multife/backend/modules/catalog/getFabricStock";
 import { getTemplate } from "@multife/backend/modules/catalog/getTemplate";
 import { listFabrics } from "@multife/backend/modules/catalog/listFabrics";
 import { listTemplates } from "@multife/backend/modules/catalog/listTemplates";
@@ -63,6 +64,24 @@ export async function getFabricAction(
     const fabric = await getFabric(supabase, parsed.data.fabricId);
     if (!fabric) return fail("Fabric not found.");
     return ok(fabric);
+  } catch (error) {
+    return fail(describeError(error));
+  }
+}
+
+const getFabricStockSchema = z.object({ fabricIds: z.array(z.string().uuid()).max(500) });
+
+// Stock left to order (roll on hand − fabric held for orders and checkouts),
+// for the fabrics this session can see; others are simply left out.
+export async function getFabricStockAction(
+  input: z.infer<typeof getFabricStockSchema>,
+): Promise<ActionResult<Record<string, FabricStock>>> {
+  const parsed = getFabricStockSchema.safeParse(input);
+  if (!parsed.success) return fail("Invalid input.");
+
+  try {
+    const supabase = await createClient();
+    return ok(Object.fromEntries(await getFabricStock(supabase, parsed.data.fabricIds)));
   } catch (error) {
     return fail(describeError(error));
   }

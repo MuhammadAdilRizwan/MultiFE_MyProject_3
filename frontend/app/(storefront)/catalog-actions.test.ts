@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@multife/backend/modules/catalog/listFabrics", () => ({ listFabrics: vi.fn() }));
 vi.mock("@multife/backend/modules/catalog/getFabric", () => ({ getFabric: vi.fn() }));
+vi.mock("@multife/backend/modules/catalog/getFabricStock", () => ({ getFabricStock: vi.fn() }));
 vi.mock("@multife/backend/modules/catalog/listTemplates", () => ({ listTemplates: vi.fn() }));
 vi.mock("@multife/backend/modules/catalog/getTemplate", () => ({ getTemplate: vi.fn() }));
 vi.mock("@multife/backend/modules/rules/evaluateOptions", () => ({ evaluateOptions: vi.fn() }));
@@ -21,6 +22,7 @@ vi.mock("@multife/backend/modules/agents/getMyCustomer", () => ({ getMyCustomer:
 import { createClient } from "@/lib/supabase/server";
 import { listFabrics } from "@multife/backend/modules/catalog/listFabrics";
 import { getFabric } from "@multife/backend/modules/catalog/getFabric";
+import { getFabricStock } from "@multife/backend/modules/catalog/getFabricStock";
 import { listTemplates } from "@multife/backend/modules/catalog/listTemplates";
 import { getTemplate } from "@multife/backend/modules/catalog/getTemplate";
 import { evaluateOptions } from "@multife/backend/modules/rules/evaluateOptions";
@@ -31,6 +33,7 @@ import { getCurrentAgent } from "@multife/backend/modules/agents/getCurrentAgent
 import { getMyCustomer } from "@multife/backend/modules/agents/getMyCustomer";
 import {
   getFabricAction,
+  getFabricStockAction,
   getOrderContextAction,
   getTemplateAction,
   getTemplateOptionsForFabricAction,
@@ -329,5 +332,25 @@ describe("getOrderContextAction", () => {
     const result = await getOrderContextAction({ brandSlug: "khadi", fabricId, actingForCustomerId: customerId });
 
     expect(result).toMatchObject({ ok: true, data: { isAgent: true, canSave: false, orderingFor: null } });
+  });
+});
+
+describe("getFabricStockAction", () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+
+  it("rejects ids that aren't uuids", async () => {
+    expect(await getFabricStockAction({ fabricIds: ["nope"] })).toEqual({ ok: false, error: "Invalid input." });
+    expect(getFabricStock).not.toHaveBeenCalled();
+  });
+
+  it("returns stock keyed by fabric id, read with the session client", async () => {
+    vi.mocked(getFabricStock).mockResolvedValue(
+      new Map([[id, { stockMetres: 40, reservedMetres: 6.5, availableMetres: 33.5 }]]),
+    );
+    expect(await getFabricStockAction({ fabricIds: [id] })).toEqual({
+      ok: true,
+      data: { [id]: { stockMetres: 40, reservedMetres: 6.5, availableMetres: 33.5 } },
+    });
+    expect(getFabricStock).toHaveBeenCalledWith(fakeSupabase, [id]);
   });
 });

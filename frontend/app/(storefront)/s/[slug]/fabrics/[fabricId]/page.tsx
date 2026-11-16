@@ -6,7 +6,7 @@ import { OrderTopBar } from "@/components/order/order-top-bar";
 import { PageTitle } from "@/components/order/page-title";
 import { estimateOrderFrom, fabricName, fabricProperties, formatMetres, formatPKR } from "@/lib/catalog";
 import { getActiveBrandBySlug } from "@/lib/suppliers";
-import { getFabricAction, listCompatibleTemplatesForFabricAction } from "@/app/(storefront)/catalog-actions";
+import { getFabricAction, getFabricStockAction, listCompatibleTemplatesForFabricAction } from "@/app/(storefront)/catalog-actions";
 import { ContinueToTemplates } from "./continue-to-templates";
 
 type Params = { slug: string; fabricId: string };
@@ -34,6 +34,12 @@ export default async function FabricDetailPage({ params }: { params: Promise<Par
   const name = fabricName(fabric);
   const cover = fabric.images[0]?.url ?? null;
 
+  // What's left after fabric held for other orders; falls back to the roll on
+  // hand if the lookup fails (the reservation at checkout re-checks anyway).
+  const stockResult = await getFabricStockAction({ fabricIds: [fabric.id] });
+  const available = (stockResult.ok ? stockResult.data[fabric.id]?.availableMetres : undefined) ?? fabric.stock_metres;
+  const soldOut = available <= 0;
+
   const confirmed = isFabricPublishable(fabric);
   const templatesResult = confirmed ? await listCompatibleTemplatesForFabricAction({ fabricId: fabric.id }) : null;
   const templates = templatesResult?.ok ? templatesResult.data.filter((t) => t.is_published) : [];
@@ -44,13 +50,15 @@ export default async function FabricDetailPage({ params }: { params: Promise<Par
 
   const rows: [string, string][] = [
     ["Fabric price", `${formatPKR(fabric.price_per_metre)} / metre`],
-    ["In stock", formatMetres(fabric.stock_metres)],
+    ["In stock", soldOut ? "Out of stock" : formatMetres(available)],
     ...(fabric.composition ? ([["Composition", fabric.composition]] as [string, string][]) : []),
     ...(stitchingFrom !== null ? ([["Custom stitching from", formatPKR(stitchingFrom)]] as [string, string][]) : []),
   ];
   const properties = fabricProperties(fabric);
 
-  const blocked = !confirmed
+  const blocked = soldOut
+    ? "This fabric is out of stock right now. Please choose another fabric."
+    : !confirmed
     ? "Customizations for this fabric are being confirmed with the store. Please check back soon."
     : templatesResult && !templatesResult.ok
       ? "We couldn't load the outfit templates. Please refresh to try again."
