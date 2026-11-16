@@ -9,6 +9,7 @@ import {
   saveMeasurementsAction,
   type MeasurementStep,
 } from "@/app/(order)/checkout-actions";
+import { ChooseCustomer } from "@/components/agent/choose-customer";
 import { ActionBar, ArrowIcon } from "@/components/order/action-bar";
 import { OrderGate, type OrderContext } from "@/components/order/order-gate";
 import { StepPrompt, StepSpinner } from "@/components/order/order-states";
@@ -50,7 +51,7 @@ function Measurements({ ctx }: { ctx: OrderContext }) {
                 action="Sign in to continue"
               />
             ) : synced.status === "agent-no-customer" ? (
-              <StepPrompt text="To order for someone, start from that customer in your agent panel." href="/agent" action="Go to my customers" />
+              <ChooseCustomer />
             ) : synced.status === "repick" ? (
               <StepPrompt
                 text="Some of your style choices are no longer offered for this fabric. Please choose again first."

@@ -106,7 +106,15 @@ export function startOrderFor(customer: { customerId: string; name: string }) {
   write({ ...EMPTY, actingFor: customer });
 }
 
-const subscribe = (l: () => void) => {
+// An agent who designed an order without choosing a customer first picks who
+// it's for at the end. The design is kept; the server re-checks that the
+// customer is assigned to the agent, and a new database draft is made for them.
+export function setActingFor(customer: { customerId: string; name: string }) {
+  load();
+  write({ ...current, actingFor: customer });
+}
+
+const subscribe =(l: () => void) => {
   listeners.add(l);
   return () => listeners.delete(l);
 };

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { getCheckoutAction, placeOrderAction, type CheckoutSummary } from "@/app/(order)/checkout-actions";
+import { ChooseCustomer } from "@/components/agent/choose-customer";
 import { ActionBar } from "@/components/order/action-bar";
 import { OrderGate, type OrderContext } from "@/components/order/order-gate";
 import { StepPrompt, StepSpinner } from "@/components/order/order-states";
@@ -42,7 +43,7 @@ function Checkout({ ctx }: { ctx: OrderContext }) {
             {synced.status === "guest" ? (
               <StepPrompt text="Sign in with your customer account to place your order." href="/sign-in?next=/order/checkout" action="Sign in to continue" />
             ) : synced.status === "agent-no-customer" ? (
-              <StepPrompt text="To order for someone, start from that customer in your agent panel." href="/agent" action="Go to my customers" />
+              <ChooseCustomer />
             ) : synced.status === "repick" ? (
               <StepPrompt text="Some of your style choices are no longer offered for this fabric. Please choose again first." href="/order/review" action="Back to review" />
             ) : synced.status === "error" ? (

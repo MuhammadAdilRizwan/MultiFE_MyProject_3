@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { PriceBreakdown } from "@multife/backend/modules/rules/priceOrder";
 import { priceDraftAction } from "@/app/(order)/order-actions";
+import { ChooseCustomer } from "@/components/agent/choose-customer";
 import { ActionBar, ArrowIcon } from "@/components/order/action-bar";
 import { OrderGate, type OrderContext } from "@/components/order/order-gate";
 import { OrderTopBar } from "@/components/order/order-top-bar";
@@ -224,17 +225,31 @@ function Review({ ctx }: { ctx: OrderContext }) {
               </ul>
             </section>
           </div>
+
+          {/* FR-AGT-03: an agent who started without a customer picks one here; the design is kept. */}
+          {!canSave && isAgent && toRepick.length === 0 && (
+            <div id="choose-customer" className="mx-auto mt-8 max-w-2xl scroll-mt-28">
+              <ChooseCustomer />
+            </div>
+          )}
         </div>
       </main>
       <ActionBar backHref={lastHref}>
         {!canSave && isAgent ? (
           <>
             <p className="mb-2 text-center text-sm text-muted">
-              To order for someone, start from that customer in your agent panel.
+              Choose the customer this order is for to add their measurements.
             </p>
-            <Link href="/agent" className={`${buttonClasses("primary")} w-full`}>
-              Go to my customers
-            </Link>
+            {toRepick.length > 0 ? (
+              <button type="button" disabled className={`${buttonClasses("primary")} w-full`}>
+                Choose customer
+              </button>
+            ) : (
+              <a href="#choose-customer" className={`${buttonClasses("primary")} w-full`}>
+                Choose customer
+                <ArrowIcon />
+              </a>
+            )}
           </>
         ) : !canSave ? (
           // FR-CUS-02: sign-in is required from the measurement step on.

@@ -2,29 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition, type FormEvent } from "react";
+import { useMemo, useState } from "react";
 import type { AssignedCustomerRow } from "@multife/backend/modules/agents/types";
-import { createProvisionalCustomerAction } from "@/app/(agent)/agent-actions";
+import { NewCustomerForm } from "@/components/agent/new-customer-form";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { TextField, inputClasses } from "@/components/ui/text-field";
+import { inputClasses } from "@/components/ui/text-field";
+import { matchesCustomer } from "@/lib/agent-customers";
 import { formatOrderDate } from "@/lib/order-status";
 import { startOrderFor } from "@/lib/order-draft";
-import { formatPhone, toInternationalPhone } from "@/lib/phone";
-
-// The action passes Supabase's own wording through; these are common enough
-// to deserve plain messages.
-function friendlyError(error: string): string {
-  if (/already (been )?registered|already exists/i.test(error)) {
-    return /phone/i.test(error)
-      ? "A customer with this phone number already exists."
-      : "An account with this email already exists. The customer can sign in with it directly.";
-  }
-  if (/rate limit|too many/i.test(error)) return "Too many invite emails were sent just now. Please try again in a while.";
-  return error;
-}
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { formatPhone } from "@/lib/phone";
 
 export function AgentCustomers({ customers }: { customers: AssignedCustomerRow[] }) {
   return (
@@ -37,42 +23,7 @@ export function AgentCustomers({ customers }: { customers: AssignedCustomerRow[]
 
 function AddCustomerForm() {
   const router = useRouter();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; phone?: string; form?: string }>({});
   const [added, setAdded] = useState<{ name: string; email: string } | null>(null);
-  const [saving, startSaving] = useTransition();
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    setAdded(null);
-    const cleanEmail = email.trim().toLowerCase();
-    const found: typeof errors = {};
-    if (!EMAIL_PATTERN.test(cleanEmail)) found.email = "Enter the customer's email address.";
-    const international = phone.trim() ? toInternationalPhone(phone) : null;
-    if (phone.trim() && !international) found.phone = "Enter a valid mobile number, e.g. 0300 1234567.";
-    setErrors(found);
-    if (Object.keys(found).length > 0) return;
-
-    const name = fullName.trim();
-    startSaving(async () => {
-      const result = await createProvisionalCustomerAction({
-        email: cleanEmail,
-        phone: international ?? undefined,
-        fullName: name || undefined,
-      });
-      if (!result.ok) {
-        setErrors({ form: friendlyError(result.error) });
-        return;
-      }
-      setAdded({ name: name || "The customer", email: cleanEmail });
-      setFullName("");
-      setEmail("");
-      setPhone("");
-      router.refresh();
-    });
-  }
 
   return (
     <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6 lg:sticky lg:top-32">
@@ -82,54 +33,21 @@ function AddCustomerForm() {
         them.
       </p>
 
-      <form onSubmit={submit} noValidate className="mt-5 space-y-4">
-        <TextField
-          id="customer-name"
-          label="Full name"
-          optional
-          autoComplete="off"
-          maxLength={80}
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-        />
-        <TextField
-          id="customer-email"
-          label="Email"
-          type="email"
-          inputMode="email"
-          autoComplete="off"
-          required
-          maxLength={254}
-          placeholder="name@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          error={errors.email}
-        />
-        <TextField
-          id="customer-phone"
-          label="Mobile number"
-          optional
-          type="tel"
-          inputMode="tel"
-          autoComplete="off"
-          maxLength={20}
-          placeholder="0300 1234567"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          error={errors.phone}
-        />
-
-        {errors.form && <Alert tone="danger">{errors.form}</Alert>}
+      <div className="mt-5 space-y-4">
         {added && (
           <Alert tone="success">
             {added.name} has been added. We&apos;ve emailed an invite to {added.email} to set their password.
           </Alert>
         )}
-
-        <Button type="submit" pending={saving} pendingLabel="Adding…" className="w-full">
-          Add customer &amp; send invite
-        </Button>
-      </form>
+        <NewCustomerForm
+          idPrefix="customer"
+          submitLabel="Add customer & send invite"
+          onAdded={(c) => {
+            setAdded({ name: c.name || "The customer", email: c.email });
+            router.refresh();
+          }}
+        />
+      </div>
     </section>
   );
 }
@@ -144,17 +62,7 @@ function CustomerList({ customers }: { customers: AssignedCustomerRow[] }) {
     router.push("/brands");
   }
 
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const qDigits = q.replace(/\D/g, "");
-    if (!q) return customers;
-    return customers.filter((c) => {
-      const name = (c.customer?.full_name ?? "").toLowerCase();
-      const email = (c.customer?.email ?? "").toLowerCase();
-      const phone = (c.customer?.phone ?? "").replace(/\D/g, "");
-      return name.includes(q) || email.includes(q) || (qDigits.length >= 3 && phone.includes(qDigits.replace(/^0/, "")));
-    });
-  }, [customers, query]);
+  const visible = useMemo(() => customers.filter((c) => matchesCustomer(c, query)), [customers, query]);
 
   const unclaimed = customers.filter((c) => c.customer?.is_provisional).length;
 
