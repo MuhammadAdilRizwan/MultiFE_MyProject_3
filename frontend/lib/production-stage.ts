@@ -101,3 +101,16 @@ export function sameMeasurements(a: Record<string, number>, b: Record<string, nu
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
   return [...keys].every((k) => a[k] === b[k]);
 }
+
+// What a staff member did, from the stage their last step moved the job to.
+const MY_STEP_LABELS: Record<ProductionStage, string> = {
+  pending: "Worked on it",
+  approved: "Approved the measurements",
+  cutting: "Started cutting",
+  stitching: "Stitched it",
+  qc: "Sent it to quality check",
+  passed: "Passed quality check",
+  failed: "Sent it for a remake",
+};
+
+export const myStepLabel = (stage: string) => MY_STEP_LABELS[stage as ProductionStage] ?? "Worked on it";

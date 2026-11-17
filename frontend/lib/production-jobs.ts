@@ -143,6 +143,52 @@ export async function listMyJobs(): Promise<JobListItem[]> {
   );
 }
 
+// Jobs this staff member worked on and then handed on (e.g. a tailor's job
+// now with QC): summary only, via fn_my_production_history, newest first.
+export type PastJob = {
+  id: string;
+  orderNumber: string;
+  templateName: string;
+  fabricName: string | null;
+  fabricImage: string | null;
+  stage: string;
+  orderStatus: string;
+  dueDate: string | null;
+  myLastStep: string;
+  myLastStepAt: string;
+};
+
+export async function listMyPastJobs(): Promise<PastJob[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_my_production_history");
+  if (error) throw error;
+  return (
+    (data ?? []) as {
+      job_id: string;
+      order_number: string;
+      template_name: string | null;
+      fabric_name: string | null;
+      fabric_image: string | null;
+      stage: string;
+      order_status: string;
+      due_date: string | null;
+      my_last_step: string;
+      my_last_step_at: string;
+    }[]
+  ).map((r) => ({
+    id: r.job_id,
+    orderNumber: r.order_number,
+    templateName: r.template_name ?? "Custom outfit",
+    fabricName: r.fabric_name,
+    fabricImage: r.fabric_image,
+    stage: r.stage,
+    orderStatus: r.order_status,
+    dueDate: r.due_date,
+    myLastStep: r.my_last_step,
+    myLastStepAt: r.my_last_step_at,
+  }));
+}
+
 export async function getMyJob(jobId: string): Promise<JobSheet | null> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();

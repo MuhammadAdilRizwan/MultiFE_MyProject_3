@@ -209,6 +209,22 @@ describe("production panel flow", () => {
     await advanceStage(qc, { jobId, toStage: "qc" });
   });
 
+  it("the tailor still sees the work they handed on, as a summary; other staff don't", async () => {
+    const history = await tailor.rpc("fn_my_production_history");
+    expect(history.error).toBeNull();
+    const row = (history.data as { job_id: string; order_number: string; my_last_step: string; order_status: string }[]).find(
+      (r) => r.job_id === jobId,
+    );
+    expect(row).toMatchObject({ order_number: orderNumber, my_last_step: "qc", order_status: "in_qc" });
+    expect(Object.keys(row ?? {})).not.toEqual(expect.arrayContaining(["measurements", "total", "customer_name"]));
+
+    const other = await otherTailor.rpc("fn_my_production_history");
+    expect((other.data as { job_id: string }[]).map((r) => r.job_id)).not.toContain(jobId);
+    // QC holds the job now, so it's in QC's queue, not their history.
+    const qcHistory = await qc.rpc("fn_my_production_history");
+    expect((qcHistory.data as { job_id: string }[]).map((r) => r.job_id)).not.toContain(jobId);
+  });
+
   it("QC sends a garment that can't be fixed for remake; the order waits in QC", async () => {
     await expect(advanceStage(qc, { jobId, toStage: "failed" })).rejects.toMatchObject({ message: expect.stringContaining("reason") });
     const failed = await advanceStage(qc, { jobId, toStage: "failed", reason: "Fabric torn at the seam" });

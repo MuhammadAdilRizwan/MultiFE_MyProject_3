@@ -5,6 +5,7 @@ import {
   isJobOverdue,
   isProductionRole,
   maxMeasurementChange,
+  myStepLabel,
   nextStep,
   sameMeasurements,
   sortJobs,
@@ -97,5 +98,13 @@ describe("correction helpers", () => {
   it("compares two sets exactly", () => {
     expect(sameMeasurements({ chest: 94, waist: 72 }, { waist: 72, chest: 94 })).toBe(true);
     expect(sameMeasurements({ chest: 94 }, { chest: 94, waist: 72 })).toBe(false);
+  });
+});
+
+describe("myStepLabel", () => {
+  it("says what the staff member did, with a fallback", () => {
+    expect(myStepLabel("qc")).toBe("Sent it to quality check");
+    expect(myStepLabel("passed")).toBe("Passed quality check");
+    expect(myStepLabel("weird")).toBe("Worked on it");
   });
 });
