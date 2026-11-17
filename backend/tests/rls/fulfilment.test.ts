@@ -4,7 +4,7 @@ import { approveForProduction } from "../../modules/production/approveForProduct
 import { confirmDelivery } from "../../modules/fulfilment/confirmDelivery";
 import { dispatchOrder } from "../../modules/fulfilment/dispatchOrder";
 import { listReadyToShip } from "../../modules/fulfilment/listReadyToShip";
-import { cleanupAll, createOrderInProduction, createUserWithRole, signedInClient } from "./support";
+import { admin, cleanupAll, createOrderInProduction, createUserWithRole, signedInClient } from "./support";
 
 describe("fulfilment RLS isolation", () => {
   let tailor1: Awaited<ReturnType<typeof createUserWithRole>>;
@@ -25,11 +25,20 @@ describe("fulfilment RLS isolation", () => {
     // this reuses the same pattern already proven in production.test.ts.
     // The final "passed" step hardcodes p_actor_role = 'qc' in
     // fn_advance_production_stage, so it must be called by a real QC user.
+    // Only the staff member a job is assigned to may act on it (migration
+    // 20261117050000), so the job is assigned as an admin would: to the
+    // tailor for making, then to QC for the check.
+    const assign = async (userId: string) => {
+      const { error } = await admin.from("production_jobs").update({ assigned_to_id: userId }).eq("id", order.jobId);
+      if (error) throw error;
+    };
+    await assign(tailor1.userId);
     const tailorClient = await signedInClient(tailor1);
     await approveForProduction(tailorClient, { jobId: order.jobId, values: {} });
     await advanceStage(tailorClient, { jobId: order.jobId, toStage: "cutting" });
     await advanceStage(tailorClient, { jobId: order.jobId, toStage: "stitching" });
     await advanceStage(tailorClient, { jobId: order.jobId, toStage: "qc" });
+    await assign(qc1.userId);
     const qcClient = await signedInClient(qc1);
     await advanceStage(qcClient, { jobId: order.jobId, toStage: "passed" });
   }, 30000);
