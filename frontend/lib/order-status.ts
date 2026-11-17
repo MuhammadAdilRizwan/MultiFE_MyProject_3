@@ -85,6 +85,8 @@ export const ADMIN_ORDER_FILTERS = [
   { key: "closed", label: "Cancelled", statuses: ["cancelled", "failed"] },
   // FR-PRD-08: still open after its delivery date.
   { key: "overdue", label: "Overdue", statuses: OPEN_STATUSES, overdue: true },
+  // UC-12: orders with an open dispute.
+  { key: "disputes", label: "Open disputes", statuses: [], dispute: true },
 ] as const;
 
 export type AdminOrderFilterKey = (typeof ADMIN_ORDER_FILTERS)[number]["key"];

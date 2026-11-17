@@ -143,7 +143,16 @@ export async function listMyOrders(scope: OrderScope = "customer"): Promise<Orde
 export const ADMIN_ORDERS_PAGE_SIZE = 25;
 
 // overdueBefore ("YYYY-MM-DD"): only orders due before that day (FR-PRD-08).
-export type AdminOrderFilter = { statuses?: readonly string[]; search?: string; page?: number; overdueBefore?: string };
+// agentId: only orders this agent (profile id) placed (FR-AGT-13).
+// disputeOpen: only orders with an open dispute (UC-12).
+export type AdminOrderFilter = {
+  statuses?: readonly string[];
+  search?: string;
+  page?: number;
+  overdueBefore?: string;
+  agentId?: string;
+  disputeOpen?: boolean;
+};
 
 // Every order, for the admin panel (FR-ADM-06): newest first, filtered by a
 // status group and by order number or customer name, a page at a time.
@@ -162,6 +171,8 @@ export async function listAllOrders(filter: AdminOrderFilter = {}): Promise<{ or
     .range((page - 1) * ADMIN_ORDERS_PAGE_SIZE, page * ADMIN_ORDERS_PAGE_SIZE - 1);
   if (filter.statuses?.length) query = query.in("status", [...filter.statuses]);
   if (filter.overdueBefore) query = query.lt("est_delivery_date", filter.overdueBefore);
+  if (filter.agentId) query = query.eq("agent_id", filter.agentId);
+  if (filter.disputeOpen) query = query.not("dispute_opened_at", "is", null);
   if (term) query = byNumber ? query.ilike("number", `%${term}%`) : query.ilike("customer.full_name", `%${term}%`);
 
   const { data, error, count } = await query;

@@ -151,11 +151,11 @@ function Stat({ label, value, note }: { label: string; value: string; note?: str
 
 // FR-PRD-08 and the production to-dos only an admin can clear.
 function NeedsAttention({ attention }: { attention: Attention }) {
-  const { overdue, overdueCount, unassignedCount, remakesWaiting, correctionsDeclined, failedEmails } = attention;
-  if (overdueCount === 0 && unassignedCount === 0 && remakesWaiting.length === 0 && correctionsDeclined.length === 0 && failedEmails === 0) {
+  const { overdue, overdueCount, unassignedCount, remakesWaiting, correctionsDeclined, failedEmails, openDisputes } = attention;
+  if (overdueCount === 0 && unassignedCount === 0 && remakesWaiting.length === 0 && correctionsDeclined.length === 0 && failedEmails === 0 && openDisputes.length === 0) {
     return (
       <p className="mt-6 rounded-3xl border border-success/25 bg-success-soft px-5 py-4 text-sm font-semibold text-success">
-        Nothing needs attention: no overdue orders, every job is assigned, no remakes or declined measurements, no failed emails.
+        Nothing needs attention: no overdue orders, every job is assigned, no remakes, disputes or declined measurements, no failed emails.
       </p>
     );
   }
@@ -164,7 +164,7 @@ function NeedsAttention({ attention }: { attention: Attention }) {
       <h2 id="attention-heading" className="font-display text-xl text-ink">
         Needs attention
       </h2>
-      <div className="mt-4 grid gap-4 md:grid-cols-3 xl:grid-cols-5">
+      <div className="mt-4 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         <div>
           <p className="text-sm font-bold text-danger">
             {overdueCount} overdue {overdueCount === 1 ? "order" : "orders"}
@@ -214,6 +214,13 @@ function NeedsAttention({ attention }: { attention: Attention }) {
           </p>
           <p className="text-xs text-muted">The customer disagreed with the tailor. Agree the measurements with them.</p>
           <OrderLinks numbers={correctionsDeclined.map((r) => r.number)} />
+        </div>
+        <div>
+          <p className={`text-sm font-bold ${openDisputes.length ? "text-danger" : "text-ink"}`}>
+            {openDisputes.length} open {openDisputes.length === 1 ? "dispute" : "disputes"}
+          </p>
+          <p className="text-xs text-muted">A customer complaint you&apos;re handling.</p>
+          <OrderLinks numbers={openDisputes.map((d) => d.number)} />
         </div>
         <div>
           <p className={`text-sm font-bold ${failedEmails ? "text-danger" : "text-ink"}`}>

@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFabricStockAction, listFabricsAction } from "@/app/(storefront)/catalog-actions";
+import { StorefrontCard } from "@/components/admin/storefront-card";
 import { Alert } from "@/components/ui/alert";
 import { HeadingRule } from "@/components/ui/heading";
 import { getSupplierForAdmin } from "@/lib/admin-catalog";
+import { storefrontUrl } from "@/lib/storefront";
 import { StoreFabrics } from "./store-fabrics";
 
 export const metadata: Metadata = { title: "Store fabrics" };
@@ -31,6 +33,9 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
           Confirm each fabric&apos;s customizations, then make it available. A fabric can only be offered to
           customers once at least one customization is confirmed.
         </p>
+      </div>
+      <div className="mt-8">
+        <StorefrontCard storeId={supplier.id} slug={supplier.slug} url={storefrontUrl(supplier.slug)} live={supplier.status === "active"} />
       </div>
       <div className="mt-8">
         {result.ok ? (

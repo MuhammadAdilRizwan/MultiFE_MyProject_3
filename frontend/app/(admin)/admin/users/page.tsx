@@ -8,6 +8,7 @@ import { Alert } from "@/components/ui/alert";
 import { activeAdmin } from "@/lib/active-admin";
 import { formatOrderDate } from "@/lib/order-status";
 import { formatPhone } from "@/lib/phone";
+import { RoleControl } from "./role-control";
 import { StatusControl } from "./status-control";
 
 export const metadata: Metadata = { title: "Users" };
@@ -73,7 +74,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   return (
     <div>
-      <PageHeading title="Users" text="Everyone with a MultiFe account. Suspend an account to sign it out and block sign-in and ordering; reactivate it any time." />
+      <PageHeading title="Users" text="Everyone with a MultiFe account. Change a role to make someone staff (tailor, QC, dispatch, agent or admin). Suspend an account to sign it out and block sign-in and ordering; reactivate it any time." />
 
       <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <nav aria-label="Filter by role" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
@@ -119,7 +120,10 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                     </p>
                     <p className="text-xs text-hint">Joined {formatOrderDate(u.created_at)}</p>
                   </div>
-                  <StatusControl key={`${u.id}-${u.status}`} userId={u.id} name={name} status={u.status} isSelf={u.id === adminId} />
+                  <div className="flex flex-wrap items-start gap-2 sm:justify-end">
+                    <RoleControl key={`${u.id}-${u.role}`} userId={u.id} name={name} role={u.role} isSelf={u.id === adminId} />
+                    <StatusControl key={`${u.id}-${u.status}`} userId={u.id} name={name} status={u.status} isSelf={u.id === adminId} />
+                  </div>
                 </li>
               );
             })}

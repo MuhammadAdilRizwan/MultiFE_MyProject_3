@@ -67,3 +67,23 @@ export async function setAccountStatus(
   if (error) throw error;
   return data as AccountStatus;
 }
+
+// Roles an admin can give from Admin -> Users. Store contacts need a store,
+// so they're invited instead (fn_admin_set_role refuses them too).
+export const ASSIGNABLE_ROLES = ["customer", "agent", "tailor", "qc", "dispatch", "admin"] as const;
+export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
+
+// FR-ADM-05: fn_admin_set_role checks admin, not-self, open production jobs
+// and the agent code, keeps the agents row in step and writes the audit log.
+export async function setUserRole(
+  supabase: AnySupabaseClient,
+  params: { userId: string; role: AssignableRole; agentCode?: string },
+): Promise<AppRole> {
+  const { data, error } = await supabase.rpc("fn_admin_set_role", {
+    p_user_id: params.userId,
+    p_role: params.role,
+    p_agent_code: params.agentCode ?? null,
+  });
+  if (error) throw error;
+  return data as AppRole;
+}

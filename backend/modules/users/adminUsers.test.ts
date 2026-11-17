@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { USERS_PAGE_SIZE, cleanSearch, listUsers, setAccountStatus } from "./adminUsers";
+import { describe, expect, it, vi } from "vitest";
+import { USERS_PAGE_SIZE, cleanSearch, listUsers, setAccountStatus, setUserRole } from "./adminUsers";
 import type { AnySupabaseClient } from "./types";
 
 function fakeClient(result: { data: unknown; error: unknown; count?: number }) {
@@ -69,5 +69,22 @@ describe("setAccountStatus", () => {
     await expect(setAccountStatus(client, { userId: "me", status: "suspended", reason: "x" })).rejects.toMatchObject({
       message: "You cannot change your own account status",
     });
+  });
+});
+
+describe("setUserRole", () => {
+  it("calls fn_admin_set_role with the agent code when given", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: "agent", error: null });
+    const supabase = { rpc } as unknown as Parameters<typeof setUserRole>[0];
+    expect(await setUserRole(supabase, { userId: "u1", role: "agent", agentCode: "AG-012" })).toBe("agent");
+    expect(rpc).toHaveBeenCalledWith("fn_admin_set_role", { p_user_id: "u1", p_role: "agent", p_agent_code: "AG-012" });
+    await setUserRole(supabase, { userId: "u1", role: "tailor" });
+    expect(rpc).toHaveBeenLastCalledWith("fn_admin_set_role", { p_user_id: "u1", p_role: "tailor", p_agent_code: null });
+  });
+
+  it("passes the database's refusal through", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: new Error("Reassign their 2 open job(s) first") });
+    const supabase = { rpc } as unknown as Parameters<typeof setUserRole>[0];
+    await expect(setUserRole(supabase, { userId: "u1", role: "customer" })).rejects.toThrow("open job");
   });
 });

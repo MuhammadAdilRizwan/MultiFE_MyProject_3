@@ -26,6 +26,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
       search,
       page,
       overdueBefore: "overdue" in filter ? todayInPakistan() : undefined,
+      disputeOpen: "dispute" in filter,
     });
   } catch (error) {
     unstable_rethrow(error);

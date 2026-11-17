@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { listProductionStaff } from "@multife/backend/modules/production/listProductionStaff";
+import { OrderAdminPanel } from "@/components/admin/order-admin-panel";
 import { OrderProductionCard } from "@/components/admin/order-production";
 import { OrderDetailView } from "@/components/orders/order-detail";
 import { Alert } from "@/components/ui/alert";
+import { getOrderAdminRecord } from "@/lib/admin-order-record";
 import { getOrderProduction } from "@/lib/admin-production";
 import { getMyOrder } from "@/lib/customer-orders";
 import { createClient } from "@/lib/supabase/server";
@@ -35,6 +37,12 @@ export default async function AdminOrderPage({ params }: Props) {
     return [null, []] as const;
   });
 
+  // Notes, disputes, cancel and the audit trail (FR-ADM-06, UC-12).
+  const record = await getOrderAdminRecord(number).catch((error: unknown) => {
+    console.error("order admin record failed:", error instanceof Error ? error.message : "unknown error");
+    return null;
+  });
+
   // The admin layout already pads the page; the view brings its own width.
   return (
     <div className="-mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-8">
@@ -48,6 +56,11 @@ export default async function AdminOrderPage({ params }: Props) {
         </div>
       )}
       <OrderDetailView order={order} placed={false} audience="admin" />
+      {record && (
+        <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6 lg:px-8">
+          <OrderAdminPanel orderNumber={number} record={record} />
+        </div>
+      )}
     </div>
   );
 }
