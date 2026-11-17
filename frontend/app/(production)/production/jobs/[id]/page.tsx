@@ -10,7 +10,7 @@ import { PrintButton } from "@/components/ui/print-button";
 import { Alert } from "@/components/ui/alert";
 import { formatMetres } from "@/lib/catalog";
 import { formatOrderDate } from "@/lib/order-status";
-import { getMyJob } from "@/lib/production-jobs";
+import { getMyJob, listMyPastJobs } from "@/lib/production-jobs";
 import { changedMeasurements, isProductionRole, nextStep, stageLabel } from "@/lib/production-stage";
 import { createClient } from "@/lib/supabase/server";
 
@@ -41,7 +41,14 @@ export default async function JobSheetPage({ params }: Props) {
     console.error("getMyJob failed:", error instanceof Error ? error.message : "unknown error");
     return undefined;
   });
-  if (job === null) notFound();
+  if (job === null) {
+    // Handed on (sent to QC, or QC sent it back): it's no longer this person's
+    // job, so go to their Done list instead of a 404.
+    const past = await listMyPastJobs().catch(() => []);
+    const handed = past.find((p) => p.id === id);
+    if (handed) redirect(`/production?view=done&handed=${encodeURIComponent(handed.orderNumber)}`);
+    notFound();
+  }
   if (job === undefined) return <Alert tone="danger">We couldn&apos;t load this job. Please refresh to try again.</Alert>;
 
   const step = nextStep(job.stage, job.orderStatus, profile.role);

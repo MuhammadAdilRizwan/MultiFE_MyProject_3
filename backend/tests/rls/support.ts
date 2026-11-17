@@ -190,12 +190,17 @@ export async function createOrderInProduction(tag: string) {
   // approvable — fn_approve_for_production requires the order to already be
   // at received_at_hub (placed -> fabric_secured -> received_at_hub, both
   // admin/system steps ahead of the tailor/QC-only cutting gate).
-  const { error: secureError } = await admin.rpc("fn_transition_order", {
-    p_order_id: orderId,
-    p_to_status: "fabric_secured",
-    p_actor_role: "admin",
-  });
-  if (secureError) throw secureError;
+  // Since 20261117500000 placing an order secures the fabric and assigns the
+  // job by itself; only secure it here if that didn't happen.
+  const { data: placed } = await admin.from("orders").select("status").eq("id", orderId).single();
+  if ((placed as { status: string } | null)?.status === "placed") {
+    const { error: secureError } = await admin.rpc("fn_transition_order", {
+      p_order_id: orderId,
+      p_to_status: "fabric_secured",
+      p_actor_role: "admin",
+    });
+    if (secureError) throw secureError;
+  }
   const { error: receiveError } = await admin.rpc("fn_transition_order", {
     p_order_id: orderId,
     p_to_status: "received_at_hub",
@@ -213,6 +218,11 @@ export async function createOrderInProduction(tag: string) {
     .eq("order_id", orderId)
     .single();
   if (jobError) throw jobError;
+
+  // Tests assign the job themselves: undo the automatic assignment so every
+  // caller starts from the same unassigned job.
+  const { error: unassignError } = await admin.from("production_jobs").update({ assigned_to_id: null }).eq("id", job.id);
+  if (unassignError) throw unassignError;
 
   return { orderId, jobId: job.id as string, customerId: customer.userId, fabricId, templateId };
 }

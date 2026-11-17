@@ -63,7 +63,8 @@ export async function assignJobAction(input: z.infer<typeof assignSchema>): Prom
 
 const remakeSchema = z.object({
   jobId: z.string().uuid(),
-  staffId: z.string().uuid("Choose who will remake this outfit."),
+  // Empty = automatic: the tailor who made it, else the least busy tailor.
+  staffId: z.string().uuid("Choose who will remake this outfit.").optional().or(z.literal("")),
   metresLost: z.number().min(0, "Enter the fabric lost in metres.").max(100, "Enter the fabric lost in metres (0 to 100)."),
   orderNumber: z.string().regex(/^MF-\d{4}-\d{6}$/),
 });
@@ -81,7 +82,7 @@ export async function createRemakeAction(input: z.infer<typeof remakeSchema>): P
     const job = await createRemake(admin.supabase, {
       jobId: parsed.data.jobId,
       metresLost: parsed.data.metresLost,
-      assignTo: parsed.data.staffId,
+      assignTo: parsed.data.staffId || undefined,
     });
     revalidatePath(`/admin/orders/${parsed.data.orderNumber}`);
     return ok({ jobId: job.id });

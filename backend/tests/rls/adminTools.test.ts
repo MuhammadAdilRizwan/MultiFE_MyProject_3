@@ -70,6 +70,18 @@ describe("admin tools", () => {
     expect((await admin.from("agents").select("status").eq("profile_id", personId).single()).data?.status).toBe("suspended");
   });
 
+  it("suspending a tailor hands their open jobs to another tailor (20261117510000)", async () => {
+    const other = await createUserWithRole("tailor", "at-tailor-b");
+    await admin.from("production_jobs").update({ assigned_to_id: tailorId }).eq("id", order.jobId);
+    const suspended = await adminClient.rpc("fn_admin_set_account_status", { p_user_id: tailorId, p_status: "suspended", p_reason: "On leave" });
+    expect(suspended.error).toBeNull();
+    const job = await admin.from("production_jobs").select("assigned_to_id").eq("id", order.jobId).single();
+    expect(job.data?.assigned_to_id).not.toBe(tailorId);
+    expect(job.data?.assigned_to_id).not.toBeNull();
+    expect(other.userId).toBeTruthy();
+    await adminClient.rpc("fn_admin_set_account_status", { p_user_id: tailorId, p_status: "active" });
+  });
+
   it("a tailor with open jobs can't be moved until they're reassigned", async () => {
     await admin.from("production_jobs").update({ assigned_to_id: tailorId }).eq("id", order.jobId);
     await expect(setUserRole(adminClient, { userId: tailorId, role: "customer" })).rejects.toMatchObject({

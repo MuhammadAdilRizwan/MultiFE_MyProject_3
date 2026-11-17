@@ -62,6 +62,12 @@ describe("createRemakeAction", () => {
     expect(createRemake).not.toHaveBeenCalled();
   });
 
+  it("leaves the assignee to the database when 'Automatic' is chosen", async () => {
+    vi.mocked(createRemake).mockResolvedValue({ id: "auto-job" } as never);
+    await createRemakeAction({ jobId: JOB, staffId: "", metresLost: 2, orderNumber: NUMBER });
+    expect(createRemake).toHaveBeenLastCalledWith(supabase, { jobId: JOB, metresLost: 2, assignTo: undefined });
+  });
+
   it("orders the remake with the admin's session", async () => {
     vi.mocked(createRemake).mockResolvedValue({ id: "new-job" } as never);
     expect(await createRemakeAction({ jobId: JOB, staffId: TAILOR, metresLost: 3, orderNumber: NUMBER })).toEqual({ ok: true, data: { jobId: "new-job" } });

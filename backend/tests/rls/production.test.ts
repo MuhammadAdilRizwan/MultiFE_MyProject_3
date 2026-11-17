@@ -3,7 +3,7 @@ import { advanceStage } from "../../modules/production/advanceStage";
 import { approveForProduction } from "../../modules/production/approveForProduction";
 import { assignProductionJob } from "../../modules/production/assignProductionJob";
 import { listJobQueue } from "../../modules/production/listJobQueue";
-import { cleanupAll, createOrderInProduction, createUserWithRole, signedInClient } from "./support";
+import { admin, cleanupAll, createOrderInProduction, createUserWithRole, signedInClient } from "./support";
 
 describe("production RLS isolation", () => {
   let tailor1: Awaited<ReturnType<typeof createUserWithRole>>;
@@ -81,10 +81,10 @@ describe("production RLS isolation", () => {
     expect(view?.status).toBe("in_stitching");
 
     await advanceStage(tailorClient, { jobId: order.jobId, toStage: "qc" });
-    [view] = (await tailorClient.from("production_order_view").select("status").eq("id", order.orderId)).data as
-      | { status: string }[]
-      | null ?? [];
-    expect(view?.status).toBe("in_qc");
+    // Sending to QC hands the job to a QC member by itself (20261117500000),
+    // so the tailor no longer sees the order; check it with the service client.
+    const { data: inQc } = await admin.from("orders").select("status").eq("id", order.orderId).single();
+    expect((inQc as { status: string }).status).toBe("in_qc");
   });
 
   it("only a QC-role user can pass the job to ready_to_ship", async () => {
@@ -94,6 +94,8 @@ describe("production RLS isolation", () => {
     // Only the staff member the job is assigned to may act on it (migration
     // 20261117050000), so an unassigned QC is refused until the admin hands
     // the job over for the quality check.
+    // The automatic hand-off may have picked any active QC; start unassigned.
+    await admin.from("production_jobs").update({ assigned_to_id: null }).eq("id", order.jobId);
     const qcClient = await signedInClient(qc1);
     await expect(advanceStage(qcClient, { jobId: order.jobId, toStage: "passed" })).rejects.toMatchObject({
       message: expect.stringContaining("not assigned to you"),
