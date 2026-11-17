@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Alert } from "@/components/ui/alert";
 import { HeadingRule } from "@/components/ui/heading";
 import { formatPKR } from "@/lib/catalog";
+import { logMessage } from "@/lib/describe-error";
 import { listDispatchOrders, type DispatchOrder } from "@/lib/dispatch-orders";
 import { formatOrderDate, todayInPakistan } from "@/lib/order-status";
 
@@ -19,7 +20,7 @@ type ViewKey = (typeof VIEWS)[number]["key"];
 export async function DispatchQueue({ view: requested }: { view?: string }) {
   const view: ViewKey = VIEWS.some((v) => v.key === requested) ? (requested as ViewKey) : "ship";
   const orders = await listDispatchOrders().catch((error: unknown) => {
-    console.error("listDispatchOrders failed:", error instanceof Error ? error.message : "unknown error");
+    console.error("listDispatchOrders failed:", logMessage(error));
     return null;
   });
 

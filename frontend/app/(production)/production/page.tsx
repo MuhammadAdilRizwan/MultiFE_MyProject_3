@@ -6,6 +6,7 @@ import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { DispatchQueue } from "@/components/production/dispatch-queue";
 import { HeadingRule } from "@/components/ui/heading";
 import { formatOrderDate, orderStatusLabel, todayInPakistan } from "@/lib/order-status";
+import { logMessage } from "@/lib/describe-error";
 import { listMyJobs, listMyPastJobs, type JobListItem, type PastJob } from "@/lib/production-jobs";
 import { isJobDone, isJobOverdue, myStepLabel, stageLabel } from "@/lib/production-stage";
 import { createClient } from "@/lib/supabase/server";
@@ -29,11 +30,11 @@ export default async function ProductionQueuePage({ searchParams }: { searchPara
   // on (a tailor's job now with QC is no longer "mine" in production_jobs).
   const [jobs, past] = await Promise.all([
     listMyJobs().catch((error: unknown) => {
-      console.error("listMyJobs failed:", error instanceof Error ? error.message : "unknown error");
+      console.error("listMyJobs failed:", logMessage(error));
       return null;
     }),
     listMyPastJobs().catch((error: unknown) => {
-      console.error("listMyPastJobs failed:", error instanceof Error ? error.message : "unknown error");
+      console.error("listMyPastJobs failed:", logMessage(error));
       return [] as PastJob[];
     }),
   ]);

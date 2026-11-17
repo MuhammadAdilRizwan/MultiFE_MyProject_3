@@ -9,6 +9,7 @@ import { JobActions } from "@/components/production/job-actions";
 import { PrintButton } from "@/components/ui/print-button";
 import { Alert } from "@/components/ui/alert";
 import { formatMetres } from "@/lib/catalog";
+import { logMessage } from "@/lib/describe-error";
 import { formatOrderDate } from "@/lib/order-status";
 import { getMyJob, listMyPastJobs } from "@/lib/production-jobs";
 import { changedMeasurements, isProductionRole, nextStep, stageLabel } from "@/lib/production-stage";
@@ -38,7 +39,7 @@ export default async function JobSheetPage({ params }: Props) {
   if (!profile || !isProductionRole(profile.role)) redirect("/");
 
   const job = await getMyJob(id).catch((error: unknown) => {
-    console.error("getMyJob failed:", error instanceof Error ? error.message : "unknown error");
+    console.error("getMyJob failed:", logMessage(error));
     return undefined;
   });
   if (job === null) {
