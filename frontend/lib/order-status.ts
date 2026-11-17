@@ -68,15 +68,23 @@ export const CANCEL_REASONS = [
   "Other",
 ] as const;
 
+// Not yet delivered, cancelled or failed.
+export const OPEN_STATUSES = ["placed", "fabric_secured", "received_at_hub", "measurements_approved", "in_cutting", "in_stitching", "in_qc", "ready_to_ship", "dispatched"] as const;
+
+// Today in Pakistan as "YYYY-MM-DD", to compare with delivery dates.
+export const todayInPakistan = (now: Date = new Date()) => now.toLocaleDateString("en-CA", { timeZone: "Asia/Karachi" });
+
 // Status groups for the admin orders list (FR-ADM-06). "all" has no filter.
 export const ADMIN_ORDER_FILTERS = [
   { key: "all", label: "All", statuses: [] },
-  { key: "open", label: "Open", statuses: ["placed", "fabric_secured", "received_at_hub", "measurements_approved", "in_cutting", "in_stitching", "in_qc", "ready_to_ship", "dispatched"] },
+  { key: "open", label: "Open", statuses: OPEN_STATUSES },
   { key: "new", label: "New", statuses: ["placed"] },
   { key: "production", label: "In production", statuses: ["fabric_secured", "received_at_hub", "measurements_approved", "in_cutting", "in_stitching", "in_qc"] },
   { key: "shipping", label: "Shipping", statuses: ["ready_to_ship", "dispatched"] },
   { key: "delivered", label: "Delivered", statuses: ["delivered"] },
   { key: "closed", label: "Cancelled", statuses: ["cancelled", "failed"] },
+  // FR-PRD-08: still open after its delivery date.
+  { key: "overdue", label: "Overdue", statuses: OPEN_STATUSES, overdue: true },
 ] as const;
 
 export type AdminOrderFilterKey = (typeof ADMIN_ORDER_FILTERS)[number]["key"];

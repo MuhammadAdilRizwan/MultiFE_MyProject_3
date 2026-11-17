@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // validation, and what reaches the order function. Collaborators that touch
 // the database are mocked; the pure rules (validateMeasurements,
 // resolveSelection, isSelectionSupported) run for real.
+vi.mock("@/lib/notifications", () => ({ kickNotifications: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@multife/backend/modules/users/getActor", () => ({ getCurrentProfile: vi.fn() }));
@@ -86,7 +87,7 @@ function ctx(overrides: Record<string, unknown> = {}) {
   };
 }
 
-const delivery = { fullName: "Ayesha Khan", phone: "0300 1234567", addressLine: "House 12, Street 4, Gulberg", city: "Lahore" };
+const delivery = { method: "delivery" as const, fullName: "Ayesha Khan", phone: "0300 1234567", addressLine: "House 12, Street 4, Gulberg", city: "Lahore" };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -220,6 +221,7 @@ describe("getCheckoutAction", () => {
       estDeliveryDate: expected.toISOString().slice(0, 10),
       contact: { fullName: "Ayesha", phone: "03001234567", addressLine: "", city: "" },
       mode: "customer",
+      collectionPoint: null,
     });
   });
 
@@ -274,6 +276,24 @@ describe("placeOrderAction", () => {
       idempotencyKey: key,
     });
     expect(result).toEqual({ ok: true, data: { number: "MF-2026-000001", mode: "customer" } });
+  });
+
+  it("places a collection order without an address, only when collection is offered", async () => {
+    const collect = { method: "collection" as const, fullName: "Ayesha Khan", phone: "0300 1234567" };
+    vi.stubEnv("MULTIFE_COLLECTION_ADDRESS", "");
+    expect(await placeOrderAction({ draftId, idempotencyKey: key, delivery: collect })).toEqual({
+      ok: false,
+      error: "Collection isn't available. Please choose delivery.",
+    });
+
+    vi.stubEnv("MULTIFE_COLLECTION_ADDRESS", "MultiFe workshop, Lahore");
+    vi.mocked(placeCodOrder).mockResolvedValue({ id: "o1", number: "MF-2026-000002", total: 9920, est_delivery_date: null });
+    await placeOrderAction({ draftId, idempotencyKey: key, delivery: collect });
+    expect(placeCodOrder).toHaveBeenLastCalledWith(
+      service,
+      expect.objectContaining({ delivery: { method: "collection", full_name: "Ayesha Khan", phone: "0300 1234567" } }),
+    );
+    vi.unstubAllEnvs();
   });
 
   it("passes the hard-reservation stock error through", async () => {

@@ -91,10 +91,19 @@ describe("production RLS isolation", () => {
     const tailorClient = await signedInClient(tailor1);
     await expect(advanceStage(tailorClient, { jobId: order.jobId, toStage: "passed" })).rejects.toBeTruthy();
 
+    // Only the staff member the job is assigned to may act on it (migration
+    // 20261117050000), so an unassigned QC is refused until the admin hands
+    // the job over for the quality check.
     const qcClient = await signedInClient(qc1);
+    await expect(advanceStage(qcClient, { jobId: order.jobId, toStage: "passed" })).rejects.toMatchObject({
+      message: expect.stringContaining("not assigned to you"),
+    });
+    const adminClient = await signedInClient(adminUser);
+    await assignProductionJob(adminClient, { jobId: order.jobId, assignedToId: qc1.userId });
     await advanceStage(qcClient, { jobId: order.jobId, toStage: "passed" });
 
-    const [view] = (await tailorClient.from("production_order_view").select("status").eq("id", order.orderId)).data as
+    // The job is the QC's now, so it's the QC who can read the order view.
+    const [view] = (await qcClient.from("production_order_view").select("status").eq("id", order.orderId)).data as
       | { status: string }[]
       | null ?? [];
     expect(view?.status).toBe("ready_to_ship");

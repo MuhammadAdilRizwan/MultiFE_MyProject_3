@@ -2,12 +2,11 @@ import type { ResolvedOption } from "../rules/orderSummary";
 import type { PriceBreakdown } from "../rules/priceOrder";
 import type { AnySupabaseClient } from "./types";
 
-export interface DeliveryAddress {
-  full_name: string;
-  phone: string;
-  address_line: string;
-  city: string;
-}
+// "collection" (FR-FUL-06): the customer picks it up from the workshop, so
+// there's no address; orders.fulfilment_method is derived from this.
+export type DeliveryAddress =
+  | { method?: "delivery"; full_name: string; phone: string; address_line: string; city: string }
+  | { method: "collection"; full_name: string; phone: string };
 
 export interface PlaceCodOrderParams {
   draftId: string;

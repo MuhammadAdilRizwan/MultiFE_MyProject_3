@@ -5,12 +5,19 @@ import { ActingForBar } from "@/components/agent/acting-for-bar";
 import { Logo } from "@/components/brand/logo";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { StaffBar } from "@/components/layout/workspace-switch";
+import { isProductionRole } from "@/lib/production-stage";
 import { createClient } from "@/lib/supabase/server";
 
 export async function SiteHeader() {
   const supabase = await createClient();
   const profile = await getCurrentProfile(supabase);
-  const staffRole = profile?.status === "active" && (profile.role === "agent" || profile.role === "admin") ? profile.role : null;
+  const active = profile?.status === "active";
+  const staffRole =
+    active && (profile.role === "agent" || profile.role === "admin")
+      ? profile.role
+      : active && isProductionRole(profile.role)
+        ? "production"
+        : null;
   const agent = staffRole === "agent" ? await getCurrentAgent(supabase).catch(() => null) : null;
 
   return (

@@ -5,8 +5,9 @@ import { getDashboardStats, type DashboardStats } from "@multife/backend/modules
 import { PageHeading } from "@/components/admin/list-controls";
 import { Alert } from "@/components/ui/alert";
 import { activeAdmin } from "@/lib/active-admin";
+import { getProductionAttention, type Attention } from "@/lib/admin-production";
 import { formatPKR } from "@/lib/catalog";
-import { orderStatusLabel, type OrderStatus } from "@/lib/order-status";
+import { formatOrderDate, orderStatusLabel, type OrderStatus } from "@/lib/order-status";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -30,9 +31,18 @@ const STATUS_ORDER: OrderStatus[] = [
 // orders are, and which brands sell.
 export default async function AdminDashboard() {
   let stats: DashboardStats | null = null;
+  let attention: Attention | null = null;
   try {
     const admin = await activeAdmin();
-    if (admin) stats = await getDashboardStats(admin.supabase);
+    if (admin) {
+      [stats, attention] = await Promise.all([
+        getDashboardStats(admin.supabase),
+        getProductionAttention().catch((error: unknown) => {
+          console.error("getProductionAttention failed:", error instanceof Error ? error.message : "unknown error");
+          return null;
+        }),
+      ]);
+    }
   } catch (error) {
     unstable_rethrow(error);
     console.error("getDashboardStats failed:", error instanceof Error ? error.message : "unknown error");
@@ -58,6 +68,8 @@ export default async function AdminDashboard() {
             />
             <Stat label="Cash collected" value={formatPKR(stats.codCollectedValue)} note="Delivered cash-on-delivery orders" />
           </dl>
+
+          {attention && <NeedsAttention attention={attention} />}
 
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
             <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
@@ -134,5 +146,102 @@ function Stat({ label, value, note }: { label: string; value: string; note?: str
       <dd className="mt-2 font-display text-2xl text-ink sm:text-3xl">{value}</dd>
       {note && <p className="mt-1 text-xs text-muted">{note}</p>}
     </div>
+  );
+}
+
+// FR-PRD-08 and the production to-dos only an admin can clear.
+function NeedsAttention({ attention }: { attention: Attention }) {
+  const { overdue, overdueCount, unassignedCount, remakesWaiting, correctionsDeclined, failedEmails } = attention;
+  if (overdueCount === 0 && unassignedCount === 0 && remakesWaiting.length === 0 && correctionsDeclined.length === 0 && failedEmails === 0) {
+    return (
+      <p className="mt-6 rounded-3xl border border-success/25 bg-success-soft px-5 py-4 text-sm font-semibold text-success">
+        Nothing needs attention: no overdue orders, every job is assigned, no remakes or declined measurements, no failed emails.
+      </p>
+    );
+  }
+  return (
+    <section aria-labelledby="attention-heading" className="mt-6 rounded-3xl border border-danger/25 bg-white p-5 shadow-card sm:p-6">
+      <h2 id="attention-heading" className="font-display text-xl text-ink">
+        Needs attention
+      </h2>
+      <div className="mt-4 grid gap-4 md:grid-cols-3 xl:grid-cols-5">
+        <div>
+          <p className="text-sm font-bold text-danger">
+            {overdueCount} overdue {overdueCount === 1 ? "order" : "orders"}
+          </p>
+          <p className="text-xs text-muted">Past the delivery date and not delivered.</p>
+          {overdue.length > 0 && (
+            <ul className="mt-2 space-y-1 text-sm">
+              {overdue.map((o) => (
+                <li key={o.number}>
+                  <Link href={`/admin/orders/${o.number}`} className="font-semibold text-ocean hover:underline">
+                    {o.number}
+                  </Link>{" "}
+                  <span className="text-muted">
+                    · due {formatOrderDate(o.dueDate)} · {orderStatusLabel(o.status)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {overdueCount > overdue.length && (
+            <Link href="/admin/orders?status=overdue" className="mt-1 inline-block text-sm font-semibold text-ocean hover:underline">
+              See all {overdueCount} →
+            </Link>
+          )}
+        </div>
+        <div>
+          <p className={`text-sm font-bold ${unassignedCount ? "text-warning" : "text-ink"}`}>
+            {unassignedCount} {unassignedCount === 1 ? "job" : "jobs"} not assigned
+          </p>
+          <p className="text-xs text-muted">Open an order and assign a tailor in the Production card.</p>
+          {unassignedCount > 0 && (
+            <Link href="/admin/orders?status=open" className="mt-1 inline-block text-sm font-semibold text-ocean hover:underline">
+              Open orders →
+            </Link>
+          )}
+        </div>
+        <div>
+          <p className={`text-sm font-bold ${remakesWaiting.length ? "text-danger" : "text-ink"}`}>
+            {remakesWaiting.length} {remakesWaiting.length === 1 ? "remake" : "remakes"} waiting
+          </p>
+          <p className="text-xs text-muted">Failed quality check and can&apos;t be fixed.</p>
+          <OrderLinks numbers={remakesWaiting.map((r) => r.number)} />
+        </div>
+        <div>
+          <p className={`text-sm font-bold ${correctionsDeclined.length ? "text-danger" : "text-ink"}`}>
+            {correctionsDeclined.length} measurement {correctionsDeclined.length === 1 ? "change" : "changes"} declined
+          </p>
+          <p className="text-xs text-muted">The customer disagreed with the tailor. Agree the measurements with them.</p>
+          <OrderLinks numbers={correctionsDeclined.map((r) => r.number)} />
+        </div>
+        <div>
+          <p className={`text-sm font-bold ${failedEmails ? "text-danger" : "text-ink"}`}>
+            {failedEmails} failed {failedEmails === 1 ? "email" : "emails"}
+          </p>
+          <p className="text-xs text-muted">Gave up after 5 attempts.</p>
+          {failedEmails > 0 && (
+            <Link href="/admin/notifications" className="mt-1 inline-block text-sm font-semibold text-ocean hover:underline">
+              Notifications →
+            </Link>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function OrderLinks({ numbers }: { numbers: string[] }) {
+  if (numbers.length === 0) return null;
+  return (
+    <ul className="mt-2 space-y-1 text-sm">
+      {numbers.slice(0, 5).map((n) => (
+        <li key={n}>
+          <Link href={`/admin/orders/${n}`} className="font-semibold text-ocean hover:underline">
+            {n}
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

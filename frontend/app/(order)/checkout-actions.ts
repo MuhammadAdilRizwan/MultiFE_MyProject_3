@@ -18,6 +18,7 @@ import { getMyProfile } from "@multife/backend/modules/users/myProfile";
 import type { AnySupabaseClient, ProfileRow } from "@multife/backend/modules/users/types";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
 import { isActionResult, loadAndPriceDraft, type LoadedDraftContext } from "@/lib/draft-pricing";
+import { kickNotifications } from "@/lib/notifications";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -201,7 +202,12 @@ export type CheckoutSummary = {
   // address (FR-CUS-16); empty strings when there are none.
   contact: { fullName: string; phone: string; addressLine: string; city: string };
   mode: "customer" | "agent";
+  // Where the customer can collect instead (FR-FUL-06); null when collection
+  // isn't offered (MULTIFE_COLLECTION_ADDRESS unset).
+  collectionPoint: string | null;
 };
+
+const collectionPoint = () => process.env.MULTIFE_COLLECTION_ADDRESS?.trim() || null;
 
 const addDays = (days: number) => {
   const date = new Date();
@@ -253,24 +259,35 @@ export async function getCheckoutAction(input: z.infer<typeof draftSchema>): Pro
       estDeliveryDate: addDays(DELIVERY_DAYS),
       contact,
       mode,
+      collectionPoint: collectionPoint(),
     });
   } catch (error) {
     return fail(customerMessage(error));
   }
 }
 
+const phoneSchema = z
+  .string()
+  .trim()
+  .regex(/^\+?[0-9][0-9\s-]{6,18}[0-9]$/, "Enter a valid phone number.");
+
 const placeOrderSchema = z.object({
   draftId: z.string().uuid(),
   idempotencyKey: z.string().uuid(),
-  delivery: z.object({
-    fullName: z.string().trim().min(2, "Enter the recipient's name.").max(80),
-    phone: z
-      .string()
-      .trim()
-      .regex(/^\+?[0-9][0-9\s-]{6,18}[0-9]$/, "Enter a valid phone number."),
-    addressLine: z.string().trim().min(8, "Enter the full delivery address.").max(200),
-    city: z.string().trim().min(2, "Enter the city.").max(60),
-  }),
+  delivery: z.discriminatedUnion("method", [
+    z.object({
+      method: z.literal("delivery"),
+      fullName: z.string().trim().min(2, "Enter the recipient's name.").max(80),
+      phone: phoneSchema,
+      addressLine: z.string().trim().min(8, "Enter the full delivery address.").max(200),
+      city: z.string().trim().min(2, "Enter the city.").max(60),
+    }),
+    z.object({
+      method: z.literal("collection"),
+      fullName: z.string().trim().min(2, "Enter the name of the person collecting.").max(80),
+      phone: phoneSchema,
+    }),
+  ]),
 });
 
 // Places the order, cash on delivery (agreed until a gateway is chosen).
@@ -293,21 +310,21 @@ export async function placeOrderAction(
     }
 
     const { delivery } = parsed.data;
+    if (delivery.method === "collection" && !collectionPoint()) return fail("Collection isn't available. Please choose delivery.");
     const order = await placeCodOrder(createAdminClient(), {
       draftId: ctx.draft.id,
       customerId: ctx.draft.customer_id as string,
       pricing: ctx.pricing,
       leadDays: DELIVERY_DAYS,
       options: resolveSelection(ctx.evaluatedOptions, ctx.draft.options),
-      delivery: {
-        full_name: delivery.fullName,
-        phone: delivery.phone,
-        address_line: delivery.addressLine,
-        city: delivery.city,
-      },
+      delivery:
+        delivery.method === "collection"
+          ? { method: "collection", full_name: delivery.fullName, phone: delivery.phone }
+          : { full_name: delivery.fullName, phone: delivery.phone, address_line: delivery.addressLine, city: delivery.city },
       idempotencyKey: parsed.data.idempotencyKey,
       ...(mode === "agent" ? { placedBy: actor.id } : {}),
     });
+    kickNotifications(); // order_placed email
     return ok({ number: order.number, mode });
   } catch (error) {
     return fail(customerMessage(error));

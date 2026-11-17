@@ -5,7 +5,7 @@ import { Pager, PageHeading, SearchForm } from "@/components/admin/list-controls
 import { Alert } from "@/components/ui/alert";
 import { formatPKR } from "@/lib/catalog";
 import { ADMIN_ORDERS_PAGE_SIZE, listAllOrders, type OrderListItem } from "@/lib/customer-orders";
-import { ADMIN_ORDER_FILTERS, adminOrderFilter, formatOrderDate, isClosedWithoutDelivery, orderStatusLabel } from "@/lib/order-status";
+import { ADMIN_ORDER_FILTERS, adminOrderFilter, formatOrderDate, isClosedWithoutDelivery, orderStatusLabel, todayInPakistan } from "@/lib/order-status";
 
 export const metadata: Metadata = { title: "Orders" };
 
@@ -21,7 +21,12 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
 
   let result: { orders: OrderListItem[]; total: number } | null = null;
   try {
-    result = await listAllOrders({ statuses: filter.statuses, search, page });
+    result = await listAllOrders({
+      statuses: filter.statuses,
+      search,
+      page,
+      overdueBefore: "overdue" in filter ? todayInPakistan() : undefined,
+    });
   } catch (error) {
     unstable_rethrow(error);
     console.error("listAllOrders failed:", error instanceof Error ? error.message : "unknown error");

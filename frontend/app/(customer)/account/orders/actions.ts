@@ -4,6 +4,7 @@ import { z } from "zod";
 import { OrderNotCancellableError, cancelMyOrder } from "@multife/backend/modules/orders/cancelOrder";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
 import { activeCustomer } from "@/lib/active-customer";
+import { kickNotifications } from "@/lib/notifications";
 import { CANCEL_REASONS } from "@/lib/order-status";
 
 // FR-CUS-14: the customer cancels their own order before cutting starts.
@@ -29,7 +30,9 @@ export async function cancelMyOrderAction(input: z.infer<typeof schema>): Promis
     const me = await activeCustomer();
     if (!me) return fail("Sign in with your customer account to cancel this order.");
     const fullReason = note ? `${reason}: ${note}` : reason;
-    return ok(await cancelMyOrder(me.supabase, { customerId: me.customerId, orderNumber, reason: fullReason }));
+    const result = await cancelMyOrder(me.supabase, { customerId: me.customerId, orderNumber, reason: fullReason });
+    kickNotifications(); // order_cancelled email
+    return ok(result);
   } catch (error) {
     if (error instanceof OrderNotCancellableError) {
       return fail(error.reason === "not_found" ? "We couldn't find this order." : TOO_LATE);

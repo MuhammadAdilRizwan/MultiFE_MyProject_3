@@ -6,6 +6,7 @@ import { Alert } from "@/components/ui/alert";
 import { HeadingRule } from "@/components/ui/heading";
 import { CancelOrder } from "@/components/orders/cancel-order";
 import { ClearPlacedDraft } from "@/components/orders/clear-placed-draft";
+import { MeasurementCorrectionCard } from "@/components/orders/measurement-correction";
 import { formatMetres, formatPKR, priceAdjustmentLabel } from "@/lib/catalog";
 import type { OrderDetail } from "@/lib/customer-orders";
 import { MILESTONES, formatOrderDate, isClosedWithoutDelivery, milestoneIndex, orderStatusLabel } from "@/lib/order-status";
@@ -39,6 +40,9 @@ export function OrderDetailView({
   const reached = milestoneIndex(order.status);
   const closed = isClosedWithoutDelivery(order.status);
   const isCod = order.paymentMethod === "cash_on_delivery";
+  // FR-FUL-06: picked up from the workshop instead of a courier.
+  const collecting = order.delivery?.method === "collection";
+  const collectionPoint = process.env.MULTIFE_COLLECTION_ADDRESS?.trim() || null;
   const adjustment = Math.round((order.total - order.fabricCost - order.stitchCost - order.optionsCost) * 100) / 100;
 
   return (
@@ -104,7 +108,54 @@ export function OrderDetailView({
             {audience === "customer" && canCustomerCancel(order.status) && <CancelOrder orderNumber={order.number} isCod={isCod} />}
           </>
         )}
+
+        {collecting && order.shipment && ["ready_for_collection", "completed"].includes(order.shipment.status) && (
+          <div className="mt-4 rounded-2xl bg-cream/70 p-4 text-sm">
+            {order.shipment.status === "completed" ? (
+              <p className="font-semibold text-ink">
+                Collected{order.shipment.deliveredAt ? ` on ${formatOrderDate(order.shipment.deliveredAt)}` : ""}.
+              </p>
+            ) : (
+              <>
+                <p className="font-semibold text-ink">Ready to collect</p>
+                <p className="mt-1 text-muted">
+                  {collectionPoint ? `From ${collectionPoint}. ` : ""}Bring your order number, {order.number}.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        {!collecting && order.shipment?.courier && (
+          <div className="mt-4 rounded-2xl bg-cream/70 p-4 text-sm">
+            <p className="font-semibold text-ink">
+              {order.shipment.status === "delivered" ? "Delivered by " : "Sent with "}
+              {order.shipment.courier}
+              {order.shipment.trackingRef && (
+                <>
+                  {" "}· Tracking number <span className="break-all font-bold">{order.shipment.trackingRef}</span>
+                </>
+              )}
+            </p>
+            {order.shipment.status === "delivery_failed" ? (
+              <p className="mt-1 text-warning">
+                The courier couldn&apos;t deliver it{order.shipment.lastFailureReason ? ` (${order.shipment.lastFailureReason})` : ""}. We&apos;ll
+                send it again shortly.
+              </p>
+            ) : order.shipment.status === "delivered" && order.shipment.deliveredAt ? (
+              <p className="mt-1 text-muted">Delivered on {formatOrderDate(order.shipment.deliveredAt)}.</p>
+            ) : order.shipment.dispatchedAt ? (
+              <p className="mt-1 text-muted">Sent on {formatOrderDate(order.shipment.dispatchedAt)}. Use the tracking number on the courier&apos;s website.</p>
+            ) : null}
+          </div>
+        )}
       </section>
+
+      {order.correction && !closed && order.status === "received_at_hub" && (
+        <div className="mt-6">
+          <MeasurementCorrectionCard correction={order.correction} canRespond={audience !== "admin"} audience={audience} />
+        </div>
+      )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,20rem)_1fr] lg:items-start">
         <aside className="space-y-6">
@@ -133,7 +184,9 @@ export function OrderDetailView({
               {isCod
                 ? order.paymentStatus === "paid"
                   ? "Paid on delivery."
-                  : "Cash on delivery — pay when your outfit arrives."
+                  : collecting
+                    ? "Cash on collection — pay when you collect your outfit."
+                    : "Cash on delivery — pay when your outfit arrives."
                 : order.paymentStatus === "paid"
                   ? "Paid online."
                   : "Payment pending."}
@@ -160,7 +213,19 @@ export function OrderDetailView({
             </Card>
           )}
 
-          {order.delivery && (
+          {order.delivery && collecting && (
+            <Card title="Collecting from">
+              <p className="text-sm leading-6 text-ink">
+                {collectionPoint ?? "Our workshop"}
+                <br />
+                <span className="text-muted">
+                  Collected by {order.delivery.full_name} · {order.delivery.phone}
+                </span>
+              </p>
+            </Card>
+          )}
+
+          {order.delivery && !collecting && (
             <Card title="Delivering to">
               <p className="text-sm leading-6 text-ink">
                 <span className="font-semibold">{order.delivery.full_name}</span>

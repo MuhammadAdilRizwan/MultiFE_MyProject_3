@@ -10,6 +10,10 @@ vi.mock("@multife/backend/modules/production/listJobQueue", () => ({ listJobQueu
 vi.mock("@multife/backend/modules/production/assignProductionJob", () => ({ assignProductionJob: vi.fn() }));
 vi.mock("@multife/backend/modules/production/approveForProduction", () => ({ approveForProduction: vi.fn() }));
 vi.mock("@multife/backend/modules/production/advanceStage", () => ({ advanceStage: vi.fn() }));
+vi.mock("@multife/backend/modules/production/recordFabricReceived", () => ({ recordFabricReceived: vi.fn() }));
+vi.mock("@/lib/production-jobs", () => ({ getMyJob: vi.fn() }));
+vi.mock("@/lib/notifications", () => ({ kickNotifications: vi.fn() }));
+vi.mock("@multife/backend/modules/production/measurementCorrections", () => ({ requestMeasurementCorrection: vi.fn() }));
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
@@ -17,11 +21,16 @@ import { listJobQueue } from "@multife/backend/modules/production/listJobQueue";
 import { assignProductionJob } from "@multife/backend/modules/production/assignProductionJob";
 import { approveForProduction } from "@multife/backend/modules/production/approveForProduction";
 import { advanceStage } from "@multife/backend/modules/production/advanceStage";
+import { recordFabricReceived } from "@multife/backend/modules/production/recordFabricReceived";
+import { getMyJob } from "@/lib/production-jobs";
+import { requestMeasurementCorrection } from "@multife/backend/modules/production/measurementCorrections";
 import {
   advanceStageAction,
   approveForProductionAction,
+  approveJobMeasurementsAction,
   assignProductionJobAction,
   listJobQueueAction,
+  recordFabricReceivedAction,
 } from "./production-actions";
 
 const fakeSupabase = {};
@@ -146,5 +155,94 @@ describe("advanceStageAction", () => {
 
     expect(advanceStage).toHaveBeenCalledWith(fakeSupabase, { jobId: UUID1, toStage: "cutting", reason: undefined });
     expect(result).toEqual({ ok: true, data: { id: UUID1, stage: "cutting" } });
+  });
+});
+
+const activeAs = (role: string) =>
+  vi.mocked(getCurrentProfile).mockResolvedValue({ id: UUID2, role, status: "active" } as never);
+
+describe("recordFabricReceivedAction", () => {
+  it("refuses dispatch staff", async () => {
+    activeAs("dispatch");
+    expect((await recordFabricReceivedAction({ jobId: UUID1 })).ok).toBe(false);
+    expect(recordFabricReceived).not.toHaveBeenCalled();
+  });
+
+  it("records receipt for a tailor", async () => {
+    activeAs("tailor");
+    vi.mocked(recordFabricReceived).mockResolvedValue({ status: "received_at_hub" } as never);
+    expect(await recordFabricReceivedAction({ jobId: UUID1 })).toEqual({ ok: true, data: { status: "received_at_hub" } });
+    expect(recordFabricReceived).toHaveBeenCalledWith(fakeSupabase, UUID1);
+  });
+});
+
+describe("approveJobMeasurementsAction", () => {
+  beforeEach(() => {
+    vi.mocked(approveForProduction).mockReset();
+    vi.mocked(requestMeasurementCorrection).mockReset();
+    vi.mocked(getMyJob).mockResolvedValue({
+      confirmedMeasurements: { chest: 90, waist: 70 },
+      correctionThreshold: 2,
+      correction: null,
+      orderStatus: "received_at_hub",
+    } as never);
+  });
+
+  it("refuses a job that isn't the caller's", async () => {
+    activeAs("tailor");
+    vi.mocked(getMyJob).mockResolvedValue(null);
+    expect(await approveJobMeasurementsAction({ jobId: UUID1, values: { chest: 90 } })).toEqual({
+      ok: false,
+      error: "This job isn't assigned to you.",
+    });
+  });
+
+  it("approves the confirmed values without a reason", async () => {
+    activeAs("qc");
+    vi.mocked(approveForProduction).mockResolvedValue({ status: "measurements_approved" } as never);
+    const result = await approveJobMeasurementsAction({ jobId: UUID1, values: { chest: 90, waist: 70 } });
+    expect(result).toEqual({ ok: true, data: { status: "measurements_approved", outcome: "approved" } });
+    expect(approveForProduction).toHaveBeenCalledWith(fakeSupabase, { jobId: UUID1, values: { chest: 90, waist: 70 }, reason: undefined });
+  });
+
+  it("needs a reason for a correction", async () => {
+    activeAs("tailor");
+    const result = await approveJobMeasurementsAction({ jobId: UUID1, values: { chest: 92, waist: 70 } });
+    expect(result.ok).toBe(false);
+    expect(approveForProduction).not.toHaveBeenCalled();
+  });
+
+  it("sends a correction beyond the threshold to the customer instead of approving", async () => {
+    activeAs("tailor");
+    vi.mocked(requestMeasurementCorrection).mockResolvedValue({ id: "c1" } as never);
+    const result = await approveJobMeasurementsAction({ jobId: UUID1, values: { chest: 95, waist: 70 }, reason: "Re-measured" });
+    expect(result).toEqual({ ok: true, data: { status: "received_at_hub", outcome: "sent_to_customer" } });
+    expect(requestMeasurementCorrection).toHaveBeenCalledWith(fakeSupabase, { jobId: UUID1, values: { chest: 95, waist: 70 }, reason: "Re-measured" });
+    expect(approveForProduction).not.toHaveBeenCalled();
+  });
+
+  it("approves a big change once the customer accepted exactly those values", async () => {
+    activeAs("tailor");
+    vi.mocked(getMyJob).mockResolvedValue({
+      confirmedMeasurements: { chest: 90, waist: 70 },
+      correctionThreshold: 2,
+      correction: { status: "accepted", proposed: { chest: 95, waist: 70 } },
+      orderStatus: "received_at_hub",
+    } as never);
+    vi.mocked(approveForProduction).mockResolvedValue({ status: "measurements_approved" } as never);
+    const result = await approveJobMeasurementsAction({ jobId: UUID1, values: { chest: 95, waist: 70 }, reason: "Accepted" });
+    expect(result).toEqual({ ok: true, data: { status: "measurements_approved", outcome: "approved" } });
+    expect(requestMeasurementCorrection).not.toHaveBeenCalled();
+  });
+
+  it("passes the reason with a correction", async () => {
+    activeAs("tailor");
+    vi.mocked(approveForProduction).mockResolvedValue({ status: "measurements_approved" } as never);
+    await approveJobMeasurementsAction({ jobId: UUID1, values: { chest: 92, waist: 70 }, reason: "Re-measured at fitting" });
+    expect(approveForProduction).toHaveBeenCalledWith(fakeSupabase, {
+      jobId: UUID1,
+      values: { chest: 92, waist: 70 },
+      reason: "Re-measured at fitting",
+    });
   });
 });

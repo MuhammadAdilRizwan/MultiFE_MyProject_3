@@ -99,6 +99,8 @@ function CheckoutForm({ ctx, draftId, summary }: { ctx: OrderContext; draftId: s
     addressLine: summary.contact.addressLine,
     city: summary.contact.city,
   });
+  // FR-FUL-06: offered only when a collection point is configured.
+  const [method, setMethod] = useState<"delivery" | "collection">("delivery");
   // One key per checkout visit: a retried tap can't create a second order.
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +113,14 @@ function CheckoutForm({ ctx, draftId, summary }: { ctx: OrderContext; draftId: s
     event.preventDefault();
     setError(null);
     startPlacing(async () => {
-      const result = await placeOrderAction({ draftId, idempotencyKey, delivery });
+      const result = await placeOrderAction({
+        draftId,
+        idempotencyKey,
+        delivery:
+          method === "collection"
+            ? { method, fullName: delivery.fullName, phone: delivery.phone }
+            : { method: "delivery", ...delivery },
+      });
       if (!result.ok) {
         setError(result.error);
         return;
@@ -205,15 +214,48 @@ function CheckoutForm({ ctx, draftId, summary }: { ctx: OrderContext; draftId: s
           </ul>
         </Section>
 
-        <Section title="Delivery details">
+        <Section title={method === "collection" ? "Collection details" : "Delivery details"}>
+          {summary.collectionPoint && (
+            <fieldset className="mb-5">
+              <legend className="sr-only">How you get your outfit</legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {(
+                  [
+                    ["delivery", "Deliver to my address", "By courier, cash on delivery."],
+                    ["collection", "Collect from our workshop", summary.collectionPoint],
+                  ] as const
+                ).map(([value, label, hint]) => (
+                  <label
+                    key={value}
+                    className={`flex cursor-pointer flex-col rounded-2xl border p-3 text-sm transition-colors ${
+                      method === value ? "border-cyan-bright bg-cyan-bright/5" : "border-line hover:border-cyan-bright/60"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2 font-semibold text-ink">
+                      <input type="radio" name="fulfilment" value={value} checked={method === value} onChange={() => setMethod(value)} className="accent-ocean" />
+                      {label}
+                    </span>
+                    <span className="mt-1 text-xs text-muted">{hint}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
-            <TextField id="fullName" label="Full name" autoComplete="name" required maxLength={80} value={delivery.fullName} onChange={set("fullName")} />
+            <TextField id="fullName" label={method === "collection" ? "Name of the person collecting" : "Full name"} autoComplete="name" required maxLength={80} value={delivery.fullName} onChange={set("fullName")} />
             <TextField id="phone" label="Phone number" type="tel" autoComplete="tel" inputMode="tel" required maxLength={20} placeholder="03XX XXXXXXX" value={delivery.phone} onChange={set("phone")} />
-            <div className="sm:col-span-2">
-              <TextField id="addressLine" label="Address" autoComplete="street-address" required maxLength={200} placeholder="House, street, area" value={delivery.addressLine} onChange={set("addressLine")} />
-            </div>
-            <TextField id="city" label="City" autoComplete="address-level2" required maxLength={60} value={delivery.city} onChange={set("city")} />
+            {method === "delivery" && (
+              <>
+                <div className="sm:col-span-2">
+                  <TextField id="addressLine" label="Address" autoComplete="street-address" required maxLength={200} placeholder="House, street, area" value={delivery.addressLine} onChange={set("addressLine")} />
+                </div>
+                <TextField id="city" label="City" autoComplete="address-level2" required maxLength={60} value={delivery.city} onChange={set("city")} />
+              </>
+            )}
           </div>
+          {method === "collection" && (
+            <p className="mt-3 text-xs leading-5 text-muted">We&apos;ll email you when it&apos;s ready. Bring your order number when you collect.</p>
+          )}
         </Section>
 
         <Section title="Payment">

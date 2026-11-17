@@ -10,9 +10,15 @@ describe("homeForRole", () => {
     expect(homeForRole("agent")).toBe("/brands");
   });
 
+  it("sends tailors, QC and dispatch to the production panel", () => {
+    expect(homeForRole("tailor")).toBe("/production");
+    expect(homeForRole("qc")).toBe("/production");
+    expect(homeForRole("dispatch")).toBe("/production");
+  });
+
   it("sends customers and roles without a panel yet to the brands", () => {
     expect(homeForRole("customer")).toBe("/brands");
-    expect(homeForRole("tailor")).toBe("/brands");
+    expect(homeForRole("supplier_contact")).toBe("/brands");
     expect(homeForRole(null)).toBe("/brands");
   });
 });

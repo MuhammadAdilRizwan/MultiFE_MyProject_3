@@ -1,12 +1,13 @@
 import Link from "next/link";
 
-// Moving between the storefront and a staff panel. Staff (agents, admins)
-// browse the brands like customers do; these keep their panel one tap away
-// without crowding the account controls.
+// Moving between the storefront and a staff panel. Staff (agents, admins,
+// production) browse the brands like customers do; these keep their panel one
+// tap away without crowding the account controls.
 
 const WORKSPACES = {
   agent: { label: "Agent workspace", href: "/agent", action: "Open agent panel" },
   admin: { label: "Admin workspace", href: "/admin", action: "Open admin panel" },
+  production: { label: "Production workspace", href: "/production", action: "Open my jobs" },
 } as const;
 
 // Slim strip above the storefront header, shown only to staff.

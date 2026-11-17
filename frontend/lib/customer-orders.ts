@@ -36,12 +36,42 @@ export type OrderDetail = OrderListItem & {
   fabricCost: number;
   stitchCost: number;
   optionsCost: number;
-  delivery: { full_name?: string; phone?: string; address_line?: string; city?: string } | null;
+  delivery: { method?: "delivery" | "collection"; full_name?: string; phone?: string; address_line?: string; city?: string } | null;
   options: ResolvedOption[];
   measurements: Record<string, number>;
   history: { status: string; at: string }[];
   // Why it was cancelled or failed, as given by the customer, agent or admin.
   cancelledReason: string | null;
+  // Courier and tracking once dispatched (FR-FUL-03).
+  // The latest measurement correction the workshop asked about (FR-AI-16).
+  correction: {
+    id: string;
+    status: "pending" | "accepted" | "declined";
+    original: Record<string, number>;
+    proposed: Record<string, number>;
+    reason: string;
+    responseNote: string | null;
+    createdAt: string;
+  } | null;
+  shipment: {
+    courier: string | null;
+    trackingRef: string | null;
+    status: string;
+    dispatchedAt: string | null;
+    deliveredAt: string | null;
+    failedAttempts: number;
+    lastFailureReason: string | null;
+  } | null;
+};
+
+type ShipmentRow = {
+  courier: string | null;
+  tracking_ref: string | null;
+  status: string;
+  dispatched_at: string | null;
+  delivered_at: string | null;
+  attempts: number;
+  last_failure_reason: string | null;
 };
 
 const ORDER_COLUMNS = `
@@ -52,6 +82,10 @@ const ORDER_COLUMNS = `
   fabric:fabrics(name, display_name, images:fabric_images(url, sort)),
   items:order_items(template_name, options, measurements)
 `;
+
+// Detail only: RLS "shipments: customer reads own / agent reads placed by
+// self / admin all" scopes it the same way as the order.
+const SHIPMENT_COLUMNS = "courier, tracking_ref, status, dispatched_at, delivered_at, attempts, last_failure_reason";
 
 type OrderRow = {
   id: string;
@@ -108,7 +142,8 @@ export async function listMyOrders(scope: OrderScope = "customer"): Promise<Orde
 
 export const ADMIN_ORDERS_PAGE_SIZE = 25;
 
-export type AdminOrderFilter = { statuses?: readonly string[]; search?: string; page?: number };
+// overdueBefore ("YYYY-MM-DD"): only orders due before that day (FR-PRD-08).
+export type AdminOrderFilter = { statuses?: readonly string[]; search?: string; page?: number; overdueBefore?: string };
 
 // Every order, for the admin panel (FR-ADM-06): newest first, filtered by a
 // status group and by order number or customer name, a page at a time.
@@ -126,6 +161,7 @@ export async function listAllOrders(filter: AdminOrderFilter = {}): Promise<{ or
     .order("created_at", { ascending: false })
     .range((page - 1) * ADMIN_ORDERS_PAGE_SIZE, page * ADMIN_ORDERS_PAGE_SIZE - 1);
   if (filter.statuses?.length) query = query.in("status", [...filter.statuses]);
+  if (filter.overdueBefore) query = query.lt("est_delivery_date", filter.overdueBefore);
   if (term) query = byNumber ? query.ilike("number", `%${term}%`) : query.ilike("customer.full_name", `%${term}%`);
 
   const { data, error, count } = await query;
@@ -153,6 +189,35 @@ export async function getMyOrder(number: string, scope: OrderScope = "customer")
     .order("created_at", { ascending: true });
   if (historyError) throw historyError;
 
+  // RLS "measurement_corrections: customer reads own / agent reads placed by
+  // self / admin all". Superseded ones are history only.
+  const { data: correctionRow, error: correctionError } = await supabase
+    .from("measurement_corrections")
+    .select("id, status, original, proposed, reason, response_note, created_at")
+    .eq("order_id", row.id)
+    .neq("status", "superseded")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (correctionError) throw correctionError;
+  const correction = correctionRow as {
+    id: string;
+    status: "pending" | "accepted" | "declined";
+    original: Record<string, number>;
+    proposed: Record<string, number>;
+    reason: string;
+    response_note: string | null;
+    created_at: string;
+  } | null;
+
+  const { data: shipmentRow, error: shipmentError } = await supabase
+    .from("shipments")
+    .select(SHIPMENT_COLUMNS)
+    .eq("order_id", row.id)
+    .maybeSingle();
+  if (shipmentError) throw shipmentError;
+  const shipment = shipmentRow as ShipmentRow | null;
+
   const item = row.items[0];
   return {
     ...toListItem(row),
@@ -167,5 +232,27 @@ export async function getMyOrder(number: string, scope: OrderScope = "customer")
     measurements: item?.measurements ?? {},
     history: (history ?? []).map((h) => ({ status: h.to_status as string, at: h.created_at as string })),
     cancelledReason: row.cancelled_reason,
+    correction: correction
+      ? {
+          id: correction.id,
+          status: correction.status,
+          original: correction.original,
+          proposed: correction.proposed,
+          reason: correction.reason,
+          responseNote: correction.response_note,
+          createdAt: correction.created_at,
+        }
+      : null,
+    shipment: shipment
+      ? {
+          courier: shipment.courier,
+          trackingRef: shipment.tracking_ref,
+          status: shipment.status,
+          dispatchedAt: shipment.dispatched_at,
+          deliveredAt: shipment.delivered_at,
+          failedAttempts: shipment.attempts,
+          lastFailureReason: shipment.last_failure_reason,
+        }
+      : null,
   };
 }

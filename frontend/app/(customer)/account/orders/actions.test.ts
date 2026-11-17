@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // The cancel action: validation, who may cancel, and how refusals read.
 // cancelMyOrder is mocked; its error class is the real one.
+vi.mock("@/lib/notifications", () => ({ kickNotifications: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@multife/backend/modules/users/getActor", () => ({ getCurrentProfile: vi.fn() }));
 vi.mock("@multife/backend/modules/orders/cancelOrder", async (importOriginal) => ({

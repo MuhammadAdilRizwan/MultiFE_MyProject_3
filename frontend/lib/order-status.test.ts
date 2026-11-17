@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ADMIN_ORDER_FILTERS, MILESTONES, adminOrderFilter, isClosedWithoutDelivery, milestoneIndex, orderStatusLabel } from "./order-status";
+import { ADMIN_ORDER_FILTERS, MILESTONES, adminOrderFilter, isClosedWithoutDelivery, milestoneIndex, orderStatusLabel, todayInPakistan } from "./order-status";
 
 describe("orderStatusLabel", () => {
   it("names every order status for the customer", () => {
@@ -49,5 +49,19 @@ describe("admin order filters", () => {
     expect(adminOrderFilter("nope").key).toBe("all");
     expect(adminOrderFilter(undefined).statuses).toEqual([]);
     expect(adminOrderFilter("shipping").statuses).toEqual(["ready_to_ship", "dispatched"]);
+  });
+});
+
+describe("todayInPakistan", () => {
+  it("uses the Pakistan date, not UTC", () => {
+    // 20:30 UTC on 16 Nov is already 17 Nov in Pakistan (UTC+5).
+    expect(todayInPakistan(new Date("2026-11-16T20:30:00Z"))).toBe("2026-11-17");
+    expect(todayInPakistan(new Date("2026-11-16T10:00:00Z"))).toBe("2026-11-16");
+  });
+
+  it("offers an Overdue filter over the open statuses", () => {
+    const f = adminOrderFilter("overdue");
+    expect(f.key).toBe("overdue");
+    expect(f.statuses).not.toContain("delivered");
   });
 });
