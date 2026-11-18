@@ -69,7 +69,6 @@ const LAYOUT: Step[] = [
     subtitle: "Adjust shoulder shape and armhole comfort.",
     cta: "Save Shoulder Settings",
     reviewLabel: "Shoulder & Armhole",
-    note: "These settings help customize the fit and comfort around your shoulders and armholes.",
     groups: [
       group("shoulder-style", "Shoulder Style", "shoulder-style",
         ["Standard Shoulder", "Relaxed Shoulder", "Structured Shoulder", "Dropped Shoulder"], "Standard Shoulder"),
@@ -112,7 +111,6 @@ const LAYOUT: Step[] = [
     subtitle: "Choose how the sleeve finishes.",
     cta: "Save Cuff Selection",
     reviewLabel: "Cuff",
-    note: "The cuff finish enhances both style and comfort. You can preview your selection in the final review.",
     groups: [
       group("cuff-style", "Cuff Style", "cuff-style",
         ["Plain Hem", "Narrow Cuff", "Button Cuff", "Embroidered Cuff", "Lace Trim Cuff", "Scallop Edge", "Frill Cuff", "Loop Button Cuff"],
