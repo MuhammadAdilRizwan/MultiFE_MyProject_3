@@ -6,8 +6,13 @@ import { AuthError } from "@multife/backend/modules/users/errors";
 // themselves are unit-tested in backend/modules/users/*.test.ts, so here they
 // (and the Supabase client factories) are mocked to isolate actions.ts's own
 // logic: validation, the admin-only invite gate, and role dispatch.
+vi.mock("@multife/backend/modules/audit/recordAuditEvent", () => ({ recordAuditEvent: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
+vi.mock("@/lib/rate-limit", () => ({
+  isRateLimited: vi.fn(),
+  RATE_LIMITED_MESSAGE: "Too many attempts. Please wait a few minutes and try again.",
+}));
 vi.mock("@multife/backend/modules/users/signUp", () => ({ signUpCustomer: vi.fn() }));
 vi.mock("@multife/backend/modules/users/signIn", () => ({ signInWithPassword: vi.fn() }));
 vi.mock("@multife/backend/modules/users/signOut", () => ({ signOutUser: vi.fn() }));
@@ -21,8 +26,10 @@ vi.mock("@multife/backend/modules/users/inviteUser", () => ({
   inviteSupplierContact: vi.fn(),
 }));
 
+import { recordAuditEvent } from "@multife/backend/modules/audit/recordAuditEvent";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isRateLimited } from "@/lib/rate-limit";
 import { signUpCustomer } from "@multife/backend/modules/users/signUp";
 import { signInWithPassword } from "@multife/backend/modules/users/signIn";
 import { signOutUser } from "@multife/backend/modules/users/signOut";
@@ -53,6 +60,41 @@ function activeAdmin() {
 beforeEach(() => {
   vi.mocked(createClient).mockResolvedValue(fakeSupabase as never);
   vi.mocked(createAdminClient).mockReturnValue(fakeSupabase as never);
+  vi.mocked(isRateLimited).mockResolvedValue(false);
+});
+
+describe("rate limiting", () => {
+  const TOO_MANY = "Too many attempts. Please wait a few minutes and try again.";
+
+  it("blocks a sign-in once the limit is hit, without touching Supabase", async () => {
+    vi.mocked(isRateLimited).mockResolvedValue(true);
+
+    const result = await signInAction({ email: "a@x.com", password: "whatever" });
+
+    expect(result).toEqual({ ok: false, error: TOO_MANY });
+    expect(isRateLimited).toHaveBeenCalledWith("sign_in", "a@x.com");
+    expect(signInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it("blocks a sign-up once the limit is hit, without touching Supabase", async () => {
+    vi.mocked(isRateLimited).mockResolvedValue(true);
+
+    const result = await signUpAction({ email: "a@x.com", password: "Sup3rSecret!", fullName: "A" });
+
+    expect(result).toEqual({ ok: false, error: TOO_MANY });
+    expect(isRateLimited).toHaveBeenCalledWith("sign_up", "a@x.com");
+    expect(signUpCustomer).not.toHaveBeenCalled();
+  });
+
+  it("blocks a password-reset request once the limit is hit, without sending an email", async () => {
+    vi.mocked(isRateLimited).mockResolvedValue(true);
+
+    const result = await requestPasswordResetAction({ email: "a@x.com" });
+
+    expect(result).toEqual({ ok: false, error: TOO_MANY });
+    expect(isRateLimited).toHaveBeenCalledWith("password_reset", "a@x.com");
+    expect(requestPasswordReset).not.toHaveBeenCalled();
+  });
 });
 
 describe("signUpAction", () => {
@@ -85,6 +127,15 @@ describe("signUpAction", () => {
 
     expect(result).toEqual({ ok: false, error: "a@x.com is already registered." });
   });
+
+  it("does not pass an unexpected error's message back to the caller", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(signUpCustomer).mockRejectedValue(new Error('insert on table "profiles" violates foreign key constraint'));
+
+    const result = await signUpAction({ email: "a@x.com", password: "Sup3rSecret!", fullName: "A" });
+
+    expect(result).toEqual({ ok: false, error: "Something went wrong. Please try again." });
+  });
 });
 
 describe("signInAction", () => {
@@ -116,8 +167,9 @@ describe("signOutAction", () => {
 
   it("returns a failure result when sign-out throws", async () => {
     vi.mocked(signOutUser).mockRejectedValue(new Error("network error"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
 
-    await expect(signOutAction()).resolves.toEqual({ ok: false, error: "network error" });
+    await expect(signOutAction()).resolves.toEqual({ ok: false, error: "Something went wrong. Please try again." });
   });
 });
 
@@ -182,6 +234,42 @@ describe("inviteUserAction", () => {
 
     expect(result.ok).toBe(false);
     expect(inviteAgent).not.toHaveBeenCalled();
+  });
+
+  it("records the invite in the audit log: who, which role, which new user, never the email", async () => {
+    vi.mocked(getCurrentProfile).mockResolvedValue(activeAdmin());
+    vi.mocked(inviteAgent).mockResolvedValue({ userId: "u2" });
+
+    await inviteUserAction({ role: "agent", email: "a@x.com", agentCode: "AG-1" });
+
+    expect(recordAuditEvent).toHaveBeenCalledWith(fakeSupabase, {
+      action: "user.invite",
+      actorId: "actor",
+      entity: "profiles",
+      entityId: "u2",
+      details: { role: "agent" },
+    });
+    expect(JSON.stringify(vi.mocked(recordAuditEvent).mock.calls)).not.toContain("a@x.com");
+  });
+
+  it("does not record an invite that failed", async () => {
+    vi.mocked(getCurrentProfile).mockResolvedValue(activeAdmin());
+    vi.mocked(inviteAgent).mockRejectedValue(new AuthError("invite_failed", "Could not send the invite."));
+
+    await inviteUserAction({ role: "agent", email: "a@x.com" });
+
+    expect(recordAuditEvent).not.toHaveBeenCalled();
+  });
+
+  it("still reports the invite as sent if writing the audit entry fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(getCurrentProfile).mockResolvedValue(activeAdmin());
+    vi.mocked(inviteAgent).mockResolvedValue({ userId: "u2" });
+    vi.mocked(recordAuditEvent).mockRejectedValue(new Error("db down"));
+
+    const result = await inviteUserAction({ role: "agent", email: "a@x.com" });
+
+    expect(result).toEqual({ ok: true, data: { userId: "u2" } });
   });
 
   it("dispatches an agent invite to inviteAgent with the actor's own client", async () => {

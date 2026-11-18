@@ -15,6 +15,7 @@ vi.mock("@multife/backend/modules/catalog/setFabricSupportedOptions", () => ({ s
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
+import { CatalogError } from "@multife/backend/modules/catalog/errors";
 import { createSupplier } from "@multife/backend/modules/catalog/createSupplier";
 import { setSupplierStatus } from "@multife/backend/modules/catalog/setSupplierStatus";
 import { createTemplate } from "@multife/backend/modules/catalog/createTemplate";
@@ -198,10 +199,7 @@ describe("setFabricAvailabilityAction", () => {
   });
 
   it("surfaces the CatalogError message when the publish gate rejects it", async () => {
-    class FakeCatalogError extends Error {
-      code = "fabric_not_publishable";
-    }
-    vi.mocked(setFabricAvailability).mockRejectedValue(new FakeCatalogError("no supported options"));
+    vi.mocked(setFabricAvailability).mockRejectedValue(new CatalogError("fabric_not_publishable", "no supported options"));
 
     const result = await setFabricAvailabilityAction({ fabricId: "123e4567-e89b-12d3-a456-426614174000", isAvailable: true });
 

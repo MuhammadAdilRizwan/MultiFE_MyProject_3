@@ -3,6 +3,7 @@
 
 const LABELS: Record<string, string> = {
   "user.role_change": "Changed a user's role",
+  "user.invite": "Sent an invite",
   "user.suspend": "Suspended an account",
   "user.reactivate": "Reactivated an account",
   "profile.claim": "Customer claimed their account",
@@ -22,6 +23,7 @@ const LABELS: Record<string, string> = {
   "measurements.correction_declined": "Customer declined measurement changes",
   "production.remake": "Ordered a remake",
   "shipment.delivery_failed": "Recorded a failed delivery",
+  "security.rate_limited": "Blocked too many attempts",
 };
 
 export const auditActionLabel = (action: string) =>
@@ -36,6 +38,7 @@ export const AUDIT_AREAS = [
   { key: "measurements", label: "Measurements", prefix: "measurements." },
   { key: "production", label: "Production", prefix: "production." },
   { key: "deliveries", label: "Deliveries", prefix: "shipment." },
+  { key: "security", label: "Security", prefix: "security." },
 ] as const;
 
 export const auditArea = (key: string | undefined) => AUDIT_AREAS.find((a) => a.key === key) ?? AUDIT_AREAS[0];
@@ -49,6 +52,7 @@ export function auditSummary(before: unknown, after: unknown): string | null {
   if (a.role !== undefined) parts.push(`${b.role ?? "?"} → ${a.role}${a.agent_code ? ` (${a.agent_code})` : ""}`);
   else if (a.status !== undefined && b.status !== undefined) parts.push(`${b.status} → ${a.status}`);
   else if (a.status !== undefined) parts.push(String(a.status));
+  if (typeof a.attempt === "string") return [a.attempt, `by ${a.scope}`, `limit ${a.limit}`].join(" · ");
   if (typeof a.reason === "string" && a.reason) parts.push(`“${a.reason}”`);
   if (typeof a.body === "string" && a.body) parts.push(`“${a.body}”`);
   if (typeof a.note === "string" && a.note) parts.push(`“${a.note}”`);

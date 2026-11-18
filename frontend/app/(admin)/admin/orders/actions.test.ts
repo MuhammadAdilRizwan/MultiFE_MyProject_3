@@ -85,7 +85,7 @@ describe("adminCancelOrderAction", () => {
   });
 
   it("explains a refusal only when it's the database's own wording", async () => {
-    vi.mocked(adminCancelOrder).mockRejectedValue(new Error("Order MF-2026-000001 is already delivered"));
+    vi.mocked(adminCancelOrder).mockRejectedValue(Object.assign(new Error("Order MF-2026-000001 is already delivered"), { code: "P0001" }));
     expect(await adminCancelOrderAction({ orderId: ORDER, orderNumber: NUMBER, reason: "Late" })).toEqual({
       ok: false,
       error: "Order MF-2026-000001 is already delivered.",

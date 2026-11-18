@@ -105,7 +105,7 @@ describe("recordVisitMeasurementsAction", () => {
   });
 
   it("passes the database's 'already closed' message through", async () => {
-    vi.mocked(recordVisitMeasurements).mockRejectedValue(new Error("This visit is already closed"));
+    vi.mocked(recordVisitMeasurements).mockRejectedValue(Object.assign(new Error("This visit is already closed"), { code: "P0001" }));
     expect(await recordVisitMeasurementsAction({ visitId, values: core })).toEqual({ ok: false, error: "This visit is already closed" });
   });
 

@@ -45,7 +45,7 @@ describe("respondToCorrectionAction", () => {
 
   it("shows only safe database messages", async () => {
     as("customer");
-    vi.mocked(respondMeasurementCorrection).mockRejectedValue(new Error("This correction has already been answered"));
+    vi.mocked(respondMeasurementCorrection).mockRejectedValue(Object.assign(new Error("This correction has already been answered"), { code: "P0001" }));
     expect(await respondToCorrectionAction({ correctionId: ID, accept: true })).toEqual({ ok: false, error: "This correction has already been answered" });
     vi.mocked(respondMeasurementCorrection).mockRejectedValue(new Error("relation does not exist"));
     expect(await respondToCorrectionAction({ correctionId: ID, accept: true })).toEqual({ ok: false, error: "We couldn't save your answer. Please try again." });

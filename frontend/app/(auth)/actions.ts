@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { AuthError } from "@multife/backend/modules/users/errors";
+import { recordAuditEvent } from "@multife/backend/modules/audit/recordAuditEvent";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import {
   inviteAdmin,
@@ -15,6 +15,8 @@ import { signOutUser } from "@multife/backend/modules/users/signOut";
 import { signUpCustomer } from "@multife/backend/modules/users/signUp";
 import { updatePassword } from "@multife/backend/modules/users/updatePassword";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
+import { describeError } from "@/lib/describe-error";
+import { isRateLimited, RATE_LIMITED_MESSAGE } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,12 +26,6 @@ function authCallbackUrl(next?: string) {
   const url = new URL("/auth/callback", SITE_URL);
   if (next) url.searchParams.set("next", next);
   return url.toString();
-}
-
-function describe(error: unknown): string {
-  if (error instanceof AuthError) return error.message;
-  if (error instanceof Error) return error.message;
-  return "Something went wrong.";
 }
 
 const signUpSchema = z.object({
@@ -43,6 +39,7 @@ export async function signUpAction(
 ): Promise<ActionResult<{ userId: string | null; confirmed: boolean }>> {
   const parsed = signUpSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input.");
+  if (await isRateLimited("sign_up", parsed.data.email)) return fail(RATE_LIMITED_MESSAGE);
 
   try {
     const supabase = await createClient();
@@ -52,7 +49,7 @@ export async function signUpAction(
     });
     return ok({ userId: result.userId, confirmed: result.session });
   } catch (error) {
-    return fail(describe(error));
+    return fail(describeError(error));
   }
 }
 
@@ -66,13 +63,14 @@ export async function signInAction(
 ): Promise<ActionResult<{ userId: string; role: string }>> {
   const parsed = signInSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input.");
+  if (await isRateLimited("sign_in", parsed.data.email)) return fail(RATE_LIMITED_MESSAGE);
 
   try {
     const supabase = await createClient();
     const result = await signInWithPassword(supabase, parsed.data);
     return ok({ userId: result.userId, role: result.profile.role });
   } catch (error) {
-    return fail(describe(error));
+    return fail(describeError(error));
   }
 }
 
@@ -82,7 +80,7 @@ export async function signOutAction(): Promise<ActionResult<null>> {
     await signOutUser(supabase);
     return ok(null);
   } catch (error) {
-    return fail(describe(error));
+    return fail(describeError(error));
   }
 }
 
@@ -93,6 +91,7 @@ export async function requestPasswordResetAction(
 ): Promise<ActionResult<null>> {
   const parsed = requestPasswordResetSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input.");
+  if (await isRateLimited("password_reset", parsed.data.email)) return fail(RATE_LIMITED_MESSAGE);
 
   try {
     const supabase = await createClient();
@@ -102,7 +101,7 @@ export async function requestPasswordResetAction(
     });
     return ok(null);
   } catch (error) {
-    return fail(describe(error));
+    return fail(describeError(error));
   }
 }
 
@@ -119,7 +118,7 @@ export async function updatePasswordAction(
     await updatePassword(supabase, parsed.data);
     return ok(null);
   } catch (error) {
-    return fail(describe(error));
+    return fail(describeError(error));
   }
 }
 
@@ -175,8 +174,18 @@ export async function inviteUserAction(
             ? await inviteSupplierContact(adminClient, { email, fullName, supplierId: supplierId! }, redirectTo)
             : await inviteProductionStaff(adminClient, role, { email, fullName }, redirectTo);
 
+    // The invite is already sent; a failed audit write mustn't turn it into
+    // an error (and a retry would send a second email).
+    await recordAuditEvent(adminClient, {
+      action: "user.invite",
+      actorId: actor.id,
+      entity: "profiles",
+      entityId: result.userId,
+      details: { role },
+    }).catch((auditError) => console.error("could not record invite:", auditError instanceof Error ? auditError.name : "unknown error"));
+
     return ok(result);
   } catch (error) {
-    return fail(describe(error));
+    return fail(describeError(error));
   }
 }

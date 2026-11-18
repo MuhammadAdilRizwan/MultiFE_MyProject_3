@@ -2,6 +2,9 @@
   "name": "multife",
   "private": true,
   "workspaces": ["frontend", "backend"],
+  "overrides": {
+    "next": { "postcss": "^8.5.31" }
+  },
   "scripts": {
     "dev": "npm run dev -w frontend",
     "build": "npm run build -w frontend",
