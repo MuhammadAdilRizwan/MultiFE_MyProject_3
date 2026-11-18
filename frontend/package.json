@@ -2,10 +2,13 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
-    "predev": "node -e \"require('fs').copyFileSync('../.env', '.env.local')\"",
+    "predev": "node -e \"const fs=require('fs');if(fs.existsSync('../.env'))fs.copyFileSync('../.env','.env.local')\"",
     "dev": "next dev",
-    "prebuild": "node -e \"require('fs').copyFileSync('../.env', '.env.local')\"",
+    "prebuild": "node -e \"const fs=require('fs');if(fs.existsSync('../.env'))fs.copyFileSync('../.env','.env.local')\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
