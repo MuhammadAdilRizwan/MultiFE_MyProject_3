@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { EvaluatedOptionGroup } from "@multife/backend/modules/rules/types";
 import demoVocabulary from "@multife/backend/supabase/seed/demo-vocabulary.json";
-import { LAYOUT_VOCABULARY, buildSteps, selectedOption, unsupportedChoices } from "./customization";
+import { LAYOUT_VOCABULARY, buildSteps, migrateSelections, selectedOption, unsupportedChoices } from "./customization";
 
 const value = (key: string, label: string, isDefault = false) => ({ key, label, priceDelta: 0, extraLeadDays: 0, isDefault });
 
@@ -98,5 +98,27 @@ describe("demo vocabulary", () => {
   // "More details".
   it("matches the customization layout exactly", () => {
     expect(demoVocabulary).toEqual(LAYOUT_VOCABULARY);
+  });
+});
+
+describe("migrateSelections", () => {
+  it("moves an old back choice to back-finish", () => {
+    expect(migrateSelections({ neckline: "round-neck", "neck-finish": "keyhole-back" }, { "neck-finish": "Front / Back Finish: Keyhole Back" })).toEqual({
+      selections: { neckline: "round-neck", "back-finish": "keyhole-back" },
+      labels: {},
+    });
+  });
+
+  it("moves an old front choice to front-finish", () => {
+    expect(migrateSelections({ "neck-finish": "embroidered-front" }, {}).selections).toEqual({ "front-finish": "embroidered-front" });
+  });
+
+  it("keeps a choice already made in the new group", () => {
+    expect(migrateSelections({ "neck-finish": "closed-back", "back-finish": "keyhole-back" }, {}).selections).toEqual({ "back-finish": "keyhole-back" });
+  });
+
+  it("leaves new-style selections untouched", () => {
+    const selections = { "front-finish": "plain-front", "back-finish": "closed-back" };
+    expect(migrateSelections(selections, {}).selections).toBe(selections);
   });
 });

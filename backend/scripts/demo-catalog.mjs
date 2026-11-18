@@ -40,7 +40,7 @@ const BOTTOM_MEASUREMENTS = [M.bottomLength, M.thigh, M.ankle];
 
 // Option groups by area (keys from demo-vocabulary.json).
 const TOP_GROUPS = [
-  "neckline", "neck-depth", "neck-finish",
+  "neckline", "neck-depth", "front-finish", "back-finish",
   "shoulder-style", "shoulder-width", "armhole-shape",
   "upper-arm-fit", "sleeve-volume", "decorative-style",
   "forearm-shape", "forearm-detail",
@@ -63,7 +63,7 @@ const DUPATTA_GROUPS = ["dupatta-style", "dupatta-length", "dupatta-border"];
 // (days — 0 everywhere: every outfit is delivered in 14 days, client decision
 // 2026-11-11). Applies on every template that offers the value.
 export const OPTION_EXTRAS = {
-  "neck-finish": { "embroidered-front": [600, 0] },
+  "front-finish": { "embroidered-front": [600, 0] },
   "decorative-style": { embroidered: [500, 0], "panel-detail": [300, 0] },
   "forearm-detail": { "embroidered-panel": [400, 0] },
   "cuff-style": { "embroidered-cuff": [350, 0], "lace-trim-cuff": [300, 0] },

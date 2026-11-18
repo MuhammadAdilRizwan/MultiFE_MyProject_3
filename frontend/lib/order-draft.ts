@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import type { Selections } from "./customization";
+import { migrateSelections, type Selections } from "./customization";
 
 // The order in progress, kept in sessionStorage so a refresh or a dropped
 // connection doesn't lose the customer's choices (FR-CUS-13). Replaced by a
@@ -45,7 +45,10 @@ function load() {
   loaded = true;
   try {
     const raw = window.sessionStorage.getItem(KEY);
-    if (raw) current = { ...EMPTY, ...JSON.parse(raw) };
+    if (raw) {
+      const saved: Draft = { ...EMPTY, ...JSON.parse(raw) };
+      current = { ...saved, ...migrateSelections(saved.selections ?? {}, saved.labels ?? {}) };
+    }
   } catch {
     current = EMPTY;
   }

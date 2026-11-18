@@ -58,9 +58,9 @@
     ]
   },
   {
-    "key": "neck-finish",
-    "label": "Front / Back Finish",
-    "defaultKey": "closed-back",
+    "key": "front-finish",
+    "label": "Front Finish",
+    "defaultKey": "plain-front",
     "values": [
       {
         "key": "plain-front",
@@ -69,7 +69,14 @@
       {
         "key": "embroidered-front",
         "label": "Embroidered Front"
-      },
+      }
+    ]
+  },
+  {
+    "key": "back-finish",
+    "label": "Back Finish",
+    "defaultKey": "closed-back",
+    "values": [
       {
         "key": "closed-back",
         "label": "Closed Back"

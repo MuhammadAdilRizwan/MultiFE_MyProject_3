@@ -57,9 +57,10 @@ const LAYOUT: Step[] = [
         ["Round Neck", ["V-Neck", "V Neck"], "Boat Neck", "Square Neck", "Mandarin Collar", "Jewel Neck", "Keyhole", "Scoop Neck"],
         "Round Neck"),
       group("neck-depth", "Neck Depth", "neck-depth", ["Shallow", "Standard", "Deep"], "Standard"),
-      group("neck-finish", "Front / Back Finish", "front-finish",
-        ["Plain Front", "Embroidered Front", ["Closed Back", "Closed Back", "back-finish"], ["Keyhole Back", "Keyhole Back", "back-finish"]],
-        "Closed Back"),
+      // Picked separately: one front finish and one back finish (these were a
+      // single "Front / Back Finish" group until migration 20261119000000).
+      group("front-finish", "Front Finish", "front-finish", ["Plain Front", "Embroidered Front"], "Plain Front"),
+      group("back-finish", "Back Finish", "back-finish", ["Closed Back", "Keyhole Back"], "Closed Back"),
     ],
   },
   {
@@ -329,6 +330,24 @@ export function buildSteps(groups: EvaluatedOptionGroup[], recommended: Record<s
   if (extra.length > 0) steps.push({ ...EXTRA_STEP, groups: extra });
 
   return steps;
+}
+
+// Drafts saved before front and back finish were split (20261119000000) hold
+// one "neck-finish" choice; move it to whichever of the two groups it belongs to.
+const BACK_FINISHES = new Set(["closed-back", "keyhole-back"]);
+
+export function migrateSelections(selections: Selections, labels: Record<string, string>) {
+  const old = selections["neck-finish"];
+  if (old === undefined) return { selections, labels };
+  const rest = { ...selections };
+  const restLabels = { ...labels };
+  delete rest["neck-finish"];
+  delete restLabels["neck-finish"];
+  const target = BACK_FINISHES.has(old) ? "back-finish" : "front-finish";
+  return {
+    selections: rest[target] === undefined ? { ...rest, [target]: old } : rest,
+    labels: restLabels,
+  };
 }
 
 export function selectedOption(group: Group, selections: Selections): Option {
