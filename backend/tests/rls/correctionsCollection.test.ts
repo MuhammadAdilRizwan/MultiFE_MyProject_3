@@ -2,7 +2,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { markCollected, markReadyForCollection } from "../../modules/orders/collection";
 import { dispatchOrder } from "../../modules/orders/delivery";
-import { markFabricSecured } from "../../modules/orders/markFabricSecured";
 import { retryNotification } from "../../modules/notifications/dispatchNotifications";
 import { advanceStage } from "../../modules/production/advanceStage";
 import { approveForProduction } from "../../modules/production/approveForProduction";
@@ -100,7 +99,7 @@ describe("corrections, collection and the email queue", () => {
       .eq("id", orderId);
     jobId = ((await admin.from("production_jobs").select("id").eq("order_id", orderId).single()).data as { id: string }).id;
 
-    await markFabricSecured(adminClient, orderId);
+    // Placing the order already secured the fabric (20261117500000).
     await assignProductionJob(adminClient, { jobId, assignedToId: tailorId });
     await recordFabricReceived(tailor, jobId);
   }, 60000);

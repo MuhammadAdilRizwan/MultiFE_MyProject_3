@@ -33,6 +33,7 @@ describe("production panel flow", () => {
   let dispatcher: SupabaseClient;
   let customer: SupabaseClient;
   let tailorId: string;
+  let otherTailorId: string;
   let qcId: string;
   let orderId: string;
   let orderNumber: string;
@@ -53,6 +54,7 @@ describe("production panel flow", () => {
       createUserWithRole("dispatch", "flow-dispatch"),
     ]);
     tailorId = t.userId;
+    otherTailorId = t2.userId;
     qcId = q.userId;
     [adminClient, tailor, otherTailor, qc, dispatcher] = await Promise.all([a, t, t2, q, d].map(signedInClient));
 
@@ -132,12 +134,20 @@ describe("production panel flow", () => {
     expect(ids).toEqual(expect.arrayContaining([tailorId, qcId]));
   });
 
-  it("admin marks the fabric secured; a tailor can't", async () => {
+  it("a new order is secured and goes to the least busy tailor by itself (20261117500000)", async () => {
+    expect(await orderStatus()).toBe("fabric_secured");
+    const job = await admin.from("production_jobs").select("assigned_to_id").eq("id", jobId).single();
+    // Both test tailors have no open jobs, so it's one of them, not a busier tailor.
+    expect([tailorId, otherTailorId]).toContain(job.data?.assigned_to_id);
+    const history = await admin.from("order_status_history").select("to_status, reason").eq("order_id", orderId).eq("to_status", "fabric_secured");
+    expect(history.data?.[0]?.reason).toContain("Automatic");
+    // Nothing left for the admin's button to do.
+    await expect(markFabricSecured(adminClient, orderId)).rejects.toBeTruthy();
     await expect(markFabricSecured(tailor, orderId)).rejects.toBeTruthy();
-    expect(await markFabricSecured(adminClient, orderId)).toEqual({ status: "fabric_secured" });
   });
 
-  it("an unassigned tailor can neither see nor act on the job", async () => {
+  it("only the assigned tailor can see or act on the job", async () => {
+    await assignProductionJob(adminClient, { jobId, assignedToId: otherTailorId });
     await expect(recordFabricReceived(tailor, jobId)).rejects.toMatchObject({ message: expect.stringContaining("not assigned") });
     await assignProductionJob(adminClient, { jobId, assignedToId: tailorId });
     await expect(recordFabricReceived(otherTailor, jobId)).rejects.toMatchObject({ message: expect.stringContaining("not assigned") });
@@ -193,20 +203,28 @@ describe("production panel flow", () => {
     expect(await orderStatus()).toBe("in_qc");
   });
 
-  it("a tailor can't pass QC", async () => {
+  it("sending it to quality check hands it to a QC by itself", async () => {
+    const job = await admin.from("production_jobs").select("assignee:profiles!production_jobs_assigned_to_id_fkey(role)").eq("id", jobId).single();
+    expect((job.data as unknown as { assignee: { role: string } }).assignee.role).toBe("qc");
+  });
+
+  it("a tailor can't pass QC (the job is already with QC)", async () => {
     await expect(advanceStage(tailor, { jobId, toStage: "passed" })).rejects.toMatchObject({
-      message: expect.stringContaining("Only QC"),
+      message: expect.stringContaining("not assigned"),
     });
   });
 
-  it("QC (once assigned) fails it back to stitching with a reason", async () => {
+  it("QC fails it back with a reason; it returns to the tailor, then back to the same QC", async () => {
     await assignProductionJob(adminClient, { jobId, assignedToId: qcId });
     await expect(advanceStage(qc, { jobId, toStage: "stitching" })).rejects.toMatchObject({
       message: expect.stringContaining("reason"),
     });
-    await advanceStage(qc, { jobId, toStage: "stitching", reason: "Hem uneven" });
+    const back = await advanceStage(qc, { jobId, toStage: "stitching", reason: "Hem uneven" });
     expect(await orderStatus()).toBe("in_stitching");
-    await advanceStage(qc, { jobId, toStage: "qc" });
+    expect(back.assigned_to_id).toBe(tailorId);
+
+    const again = await advanceStage(tailor, { jobId, toStage: "qc" });
+    expect(again.assigned_to_id).toBe(qcId);
   });
 
   it("the tailor still sees the work they handed on, as a summary; other staff don't", async () => {
@@ -235,7 +253,9 @@ describe("production panel flow", () => {
   it("only an admin can order the remake; it opens an urgent job and records the fabric lost", async () => {
     await expect(createRemake(qc, { jobId, metresLost: 3, assignTo: tailorId })).rejects.toBeTruthy();
 
-    const replacement = await createRemake(adminClient, { jobId, metresLost: 3, assignTo: tailorId });
+    // No one chosen: it goes back to the tailor who made it.
+    const replacement = await createRemake(adminClient, { jobId, metresLost: 3 });
+    expect(replacement.assigned_to_id).toBe(tailorId);
     expect(replacement.stage).toBe("approved");
     expect(replacement.priority).toBeGreaterThan(0);
     expect(await orderStatus()).toBe("measurements_approved");

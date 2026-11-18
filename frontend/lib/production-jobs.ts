@@ -160,6 +160,10 @@ export type PastJob = {
 
 export async function listMyPastJobs(): Promise<PastJob[]> {
   const supabase = await createClient();
+  // Signed out (e.g. the page re-rendering during sign-out): nothing to show,
+  // and the function isn't callable without a session anyway.
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return [];
   const { data, error } = await supabase.rpc("fn_my_production_history");
   if (error) throw error;
   return (

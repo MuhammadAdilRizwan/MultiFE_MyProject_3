@@ -159,7 +159,7 @@ export function OrderProductionCard({
           <p className="text-sm font-bold text-danger">Failed quality check — remake needed</p>
           {remakeNeeded.reason && <p className="mt-1 text-sm text-ink">“{remakeNeeded.reason}”</p>}
           <p className="mt-1 text-xs leading-5 text-muted">
-            A remake opens an urgent job for the tailor you choose and sends the order back to cutting. Record how much
+            A remake opens an urgent job (by default for the tailor who made it) and sends the order back to cutting. Record how much
             fabric was spoilt, so the loss is visible.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-[10rem_1fr_auto] sm:items-end">
@@ -174,16 +174,16 @@ export function OrderProductionCard({
               value={metres}
               onChange={(e) => setMetres(e.target.value)}
             />
-            <StaffSelect id="remake-staff" label="Remake by" staff={staff} value={staffId} onChange={setStaffId} />
+            <StaffSelect id="remake-staff" label="Remake by" staff={staff} value={staffId} onChange={setStaffId} automatic />
             <Button
               type="button"
               pending={pending}
               pendingLabel="Ordering…"
-              disabled={!staffId || metres.trim() === "" || Number.isNaN(Number(metres))}
+              disabled={metres.trim() === "" || Number.isNaN(Number(metres))}
               onClick={() =>
                 run(
                   () => createRemakeAction({ jobId: job.id, staffId, metresLost: Number(metres), orderNumber }),
-                  `Remake ordered and assigned to ${staffName}.`,
+                  staffId ? `Remake ordered and assigned to ${staffName}.` : "Remake ordered and given to the tailor automatically.",
                 )
               }
               className="h-11 px-5 text-sm"
@@ -242,12 +242,15 @@ function StaffSelect({
   staff,
   value,
   onChange,
+  automatic = false,
 }: {
   id: string;
   label: string;
   staff: Staff[];
   value: string;
   onChange: (v: string) => void;
+  // Offer "Automatic" (empty value) instead of asking for a choice.
+  automatic?: boolean;
 }) {
   return (
     <div>
@@ -260,7 +263,7 @@ function StaffSelect({
         </p>
       ) : (
         <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={`${inputClasses} mt-1.5 h-11 text-sm`}>
-          <option value="">Choose a tailor or QC…</option>
+          <option value="">{automatic ? "Automatic (the tailor who made it)" : "Choose a tailor or QC…"}</option>
           {staff.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name} · {ROLE_LABELS[s.role]}

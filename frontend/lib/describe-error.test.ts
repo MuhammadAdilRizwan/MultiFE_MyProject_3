@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthError } from "@multife/backend/modules/users/errors";
 import { CatalogError } from "@multife/backend/modules/catalog/errors";
@@ -6,6 +7,10 @@ import * as Sentry from "@sentry/nextjs";
 import { describeError, GENERIC_ERROR } from "./describe-error";
 
 vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
+=======
+import { describe, expect, it } from "vitest";
+import { describeError, logMessage } from "./describe-error";
+>>>>>>> a076bc5cf821bf5dc895dd8a89f28dd313893b49
 
 describe("describeError", () => {
   beforeEach(() => {
@@ -72,5 +77,17 @@ describe("describeError", () => {
     describeError(new Error("secret@example.com is not allowed"));
     const logged = JSON.stringify(vi.mocked(console.error).mock.calls);
     expect(logged).not.toContain("secret@example.com");
+  });
+});
+
+describe("logMessage", () => {
+  it("reads Errors and Supabase's plain error objects", () => {
+    expect(logMessage(new Error("boom"))).toBe("boom");
+    expect(logMessage({ message: "permission denied for function x", code: "42501", details: null })).toBe(
+      "permission denied for function x (42501)",
+    );
+    expect(logMessage({ message: "no code" })).toBe("no code");
+    expect(logMessage("text")).toBe("unknown error");
+    expect(logMessage(null)).toBe("unknown error");
   });
 });

@@ -64,7 +64,7 @@ export function nextStep(stage: string, orderStatus: string, role: ProductionRol
     return { kind: "advance", to: "stitching", label: "Cutting done — start stitching", hint: "All pieces are cut." };
   }
   if (stage === "stitching") {
-    return { kind: "advance", to: "qc", label: "Send to quality check", hint: "The outfit is stitched and finished." };
+    return { kind: "advance", to: "qc", label: "Send to quality check", hint: "The outfit is stitched and finished. It goes to a QC member automatically." };
   }
   if (stage === "qc") {
     return role === "qc" ? { kind: "qc" } : { kind: "wait", text: "Waiting for quality check." };

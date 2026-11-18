@@ -6,6 +6,7 @@ import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { DispatchQueue } from "@/components/production/dispatch-queue";
 import { HeadingRule } from "@/components/ui/heading";
 import { formatOrderDate, orderStatusLabel, todayInPakistan } from "@/lib/order-status";
+import { logMessage } from "@/lib/describe-error";
 import { listMyJobs, listMyPastJobs, type JobListItem, type PastJob } from "@/lib/production-jobs";
 import { isJobDone, isJobOverdue, myStepLabel, stageLabel } from "@/lib/production-stage";
 import { createClient } from "@/lib/supabase/server";
@@ -19,7 +20,7 @@ const VIEWS = [
 
 // FR-PRD-05: the signed-in tailor / QC user's own job queue; dispatch staff
 // get the delivery queue instead (FR-FUL).
-export default async function ProductionQueuePage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+export default async function ProductionQueuePage({ searchParams }: { searchParams: Promise<{ view?: string; handed?: string }> }) {
   const params = await searchParams;
   const profile = await getCurrentProfile(await createClient());
   if (profile?.role === "dispatch") return <DispatchQueue view={params.view} />;
@@ -29,11 +30,11 @@ export default async function ProductionQueuePage({ searchParams }: { searchPara
   // on (a tailor's job now with QC is no longer "mine" in production_jobs).
   const [jobs, past] = await Promise.all([
     listMyJobs().catch((error: unknown) => {
-      console.error("listMyJobs failed:", error instanceof Error ? error.message : "unknown error");
+      console.error("listMyJobs failed:", logMessage(error));
       return null;
     }),
     listMyPastJobs().catch((error: unknown) => {
-      console.error("listMyPastJobs failed:", error instanceof Error ? error.message : "unknown error");
+      console.error("listMyPastJobs failed:", logMessage(error));
       return [] as PastJob[];
     }),
   ]);
@@ -50,9 +51,17 @@ export default async function ProductionQueuePage({ searchParams }: { searchPara
         <h1 className="font-display text-3xl leading-tight text-ink sm:text-4xl">My jobs</h1>
         <HeadingRule align="left" className="mt-4" />
         <p className="mt-4 text-base leading-7 text-muted">
-          Outfits assigned to you, most urgent first. Open a job for its sheet: design, measurements and the next step.
+          Outfits come to you automatically, most urgent first. Open a job for its sheet: design, measurements and the next step.
         </p>
       </div>
+
+      {params.handed && /^MF-\d{4}-\d{6}$/.test(params.handed) && (
+        <div className="mt-6">
+          <Alert tone="success">
+            {params.handed} has been handed on: it&apos;s now with the next person. You&apos;ll find it below, with where it is now.
+          </Alert>
+        </div>
+      )}
 
       {jobs === null ? (
         <div className="mt-8">
@@ -91,7 +100,7 @@ export default async function ProductionQueuePage({ searchParams }: { searchPara
                 {view === "done" ? "No finished jobs yet" : "No jobs waiting for you"}
               </p>
               <p className="mt-1 text-sm text-muted">
-                {view === "done" ? "Jobs you finish will be listed here." : "New jobs appear here when the admin team assigns them to you."}
+                {view === "done" ? "Jobs you finish will be listed here." : "New jobs arrive here automatically as customers order."}
               </p>
             </div>
           ) : (
