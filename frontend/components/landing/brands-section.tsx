@@ -3,10 +3,11 @@ import { DELIVERY_DAYS } from "@multife/backend/modules/rules/orderSummary";
 import { BrandBanner, BrandLogo } from "@/components/order/brand-mark";
 import { SectionHeading } from "@/components/ui/heading";
 import { buttonClasses } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
 import { listStorefrontBrands, type StorefrontBrand } from "@/lib/suppliers";
 
 export async function BrandsSection() {
-  const brands = await listStorefrontBrands();
+  const [brands, signedIn] = await Promise.all([listStorefrontBrands(), isSignedIn()]);
   const leadTime = `${DELIVERY_DAYS} days`;
 
   return (
@@ -32,18 +33,27 @@ export async function BrandsSection() {
           </p>
         )}
 
-        <div className="mx-auto mt-14 flex max-w-3xl flex-col items-center gap-4 rounded-3xl border border-line bg-white/80 px-6 py-8 text-center shadow-card backdrop-blur-xl sm:flex-row sm:justify-between sm:text-left">
-          <div>
-            <h3 className="text-lg font-extrabold tracking-tight text-ink">Are you a fabric brand?</h3>
-            <p className="mt-1 text-sm leading-6 text-muted">List your fabrics on MultiFe and we&apos;ll stitch them to order.</p>
+        {/* The brand sign-up pitch is for visitors, not people already shopping. */}
+        {!signedIn && (
+          <div className="mx-auto mt-14 flex max-w-3xl flex-col items-center gap-4 rounded-3xl border border-line bg-white/80 px-6 py-8 text-center shadow-card backdrop-blur-xl sm:flex-row sm:justify-between sm:text-left">
+            <div>
+              <h3 className="text-lg font-extrabold tracking-tight text-ink">Are you a fabric brand?</h3>
+              <p className="mt-1 text-sm leading-6 text-muted">List your fabrics on MultiFe and we&apos;ll stitch them to order.</p>
+            </div>
+            <Link href="/register-brand" className={`${buttonClasses("primary")} w-full flex-none sm:w-auto`}>
+              Register your brand
+            </Link>
           </div>
-          <Link href="/register-brand" className={`${buttonClasses("primary")} w-full flex-none sm:w-auto`}>
-            Register your brand
-          </Link>
-        </div>
+        )}
       </div>
     </section>
   );
+}
+
+async function isSignedIn(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  return Boolean(data.user);
 }
 
 function StoreCard({ brand, leadTime }: { brand: StorefrontBrand; leadTime: string | null }) {
