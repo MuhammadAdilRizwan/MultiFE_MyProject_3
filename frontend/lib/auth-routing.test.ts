@@ -16,9 +16,12 @@ describe("homeForRole", () => {
     expect(homeForRole("dispatch")).toBe("/production");
   });
 
-  it("sends customers and roles without a panel yet to the brands", () => {
+  it("sends supplier contacts to the supplier panel", () => {
+    expect(homeForRole("supplier_contact")).toBe("/supplier");
+  });
+
+  it("sends customers and unknown roles to the brands", () => {
     expect(homeForRole("customer")).toBe("/brands");
-    expect(homeForRole("supplier_contact")).toBe("/brands");
     expect(homeForRole(null)).toBe("/brands");
   });
 });

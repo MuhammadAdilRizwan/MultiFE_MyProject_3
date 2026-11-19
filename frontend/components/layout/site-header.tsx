@@ -17,7 +17,9 @@ export async function SiteHeader() {
       ? profile.role
       : active && isProductionRole(profile.role)
         ? "production"
-        : null;
+        : active && profile.role === "supplier_contact"
+          ? "supplier"
+          : null;
   const agent = staffRole === "agent" ? await getCurrentAgent(supabase).catch(() => null) : null;
 
   return (

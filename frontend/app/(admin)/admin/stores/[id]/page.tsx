@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFabricStockAction, listFabricsAction } from "@/app/(storefront)/catalog-actions";
+import { getSupplierIntegration } from "@multife/backend/modules/suppliers/getSupplierIntegration";
+import { listSupplierContacts } from "@multife/backend/modules/suppliers/listSupplierContacts";
+import { StoreConnectionCard } from "@/components/admin/store-connection-card";
+import { StoreContactsCard } from "@/components/admin/store-contacts-card";
 import { StorefrontCard } from "@/components/admin/storefront-card";
+import { logMessage } from "@/lib/describe-error";
+import { createClient } from "@/lib/supabase/server";
 import { Alert } from "@/components/ui/alert";
 import { HeadingRule } from "@/components/ui/heading";
 import { getSupplierForAdmin } from "@/lib/admin-catalog";
@@ -20,6 +26,17 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
   // Admin session: RLS returns every fabric of this store, hidden or not.
   const result = await listFabricsAction({ supplierId: supplier.id });
   const stock = result.ok ? await getFabricStockAction({ fabricIds: result.data.map((f) => f.id) }) : null;
+  const supabase = await createClient();
+  const [integration, contacts] = await Promise.all([
+    getSupplierIntegration(supabase, supplier.id).catch((error) => {
+      console.error("getSupplierIntegration failed:", logMessage(error));
+      return undefined;
+    }),
+    listSupplierContacts(supabase, supplier.id).catch((error) => {
+      console.error("listSupplierContacts failed:", logMessage(error));
+      return undefined;
+    }),
+  ]);
 
   return (
     <div>
@@ -36,6 +53,18 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
       </div>
       <div className="mt-8">
         <StorefrontCard storeId={supplier.id} slug={supplier.slug} url={storefrontUrl(supplier.slug)} live={supplier.status === "active"} />
+      </div>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-start">
+        {integration === undefined ? (
+          <Alert tone="danger">We couldn&apos;t load this store&apos;s connection settings. Please refresh.</Alert>
+        ) : (
+          <StoreConnectionCard storeId={supplier.id} integration={integration} />
+        )}
+        {contacts === undefined ? (
+          <Alert tone="danger">We couldn&apos;t load this store&apos;s contacts. Please refresh.</Alert>
+        ) : (
+          <StoreContactsCard storeId={supplier.id} contacts={contacts} />
+        )}
       </div>
       <div className="mt-8">
         {result.ok ? (

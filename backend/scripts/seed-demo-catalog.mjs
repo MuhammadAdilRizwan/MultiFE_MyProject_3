@@ -136,6 +136,21 @@ async function seedBrands() {
       .single();
     check(error, `brand ${brand.slug}`);
 
+    // Phase 1 has no store API (client decision): record each demo brand's
+    // connection as placeholder data. Insert only — an admin's own settings
+    // for the store are never overwritten by a re-seed.
+    const { error: integrationError } = await admin
+      .from("supplier_integrations")
+      .upsert(
+        {
+          supplier_id: supplier.id,
+          provider_kind: "placeholder",
+          capabilities: { catalogue_read: false, stock_read: false, order_write: false, status_callback: false },
+        },
+        { onConflict: "supplier_id", ignoreDuplicates: true },
+      );
+    check(integrationError, `connection of ${brand.slug}`);
+
     const { data: fabrics, error: fabricsError } = await admin
       .from("fabrics")
       .upsert(

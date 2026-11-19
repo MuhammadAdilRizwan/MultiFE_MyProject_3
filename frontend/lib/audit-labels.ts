@@ -1,3 +1,5 @@
+import { providerKindLabel } from "@multife/backend/modules/suppliers/types";
+
 // Plain-English names for audit_log actions (FR-ADM-10), for the audit log
 // page and an order's history. Isomorphic: no data access.
 
@@ -24,6 +26,7 @@ const LABELS: Record<string, string> = {
   "production.remake": "Ordered a remake",
   "shipment.delivery_failed": "Recorded a failed delivery",
   "security.rate_limited": "Blocked too many attempts",
+  "supplier.configure": "Changed a store's connection settings",
 };
 
 export const auditActionLabel = (action: string) =>
@@ -38,6 +41,7 @@ export const AUDIT_AREAS = [
   { key: "measurements", label: "Measurements", prefix: "measurements." },
   { key: "production", label: "Production", prefix: "production." },
   { key: "deliveries", label: "Deliveries", prefix: "shipment." },
+  { key: "stores", label: "Stores", prefix: "supplier." },
   { key: "security", label: "Security", prefix: "security." },
 ] as const;
 
@@ -53,6 +57,11 @@ export function auditSummary(before: unknown, after: unknown): string | null {
   else if (a.status !== undefined && b.status !== undefined) parts.push(`${b.status} → ${a.status}`);
   else if (a.status !== undefined) parts.push(String(a.status));
   if (typeof a.attempt === "string") return [a.attempt, `by ${a.scope}`, `limit ${a.limit}`].join(" · ");
+  if (typeof a.provider_kind === "string") {
+    // supplier.configure keeps the previous settings in details.before.
+    const was = (a.before as { provider_kind?: unknown } | null | undefined)?.provider_kind;
+    return `${typeof was === "string" ? `${providerKindLabel(was)} → ` : ""}${providerKindLabel(a.provider_kind)}`;
+  }
   if (typeof a.reason === "string" && a.reason) parts.push(`“${a.reason}”`);
   if (typeof a.body === "string" && a.body) parts.push(`“${a.body}”`);
   if (typeof a.note === "string" && a.note) parts.push(`“${a.note}”`);

@@ -8,6 +8,7 @@ const WORKSPACES = {
   agent: { label: "Agent workspace", href: "/agent", action: "Open agent panel" },
   admin: { label: "Admin workspace", href: "/admin", action: "Open admin panel" },
   production: { label: "Production workspace", href: "/production", action: "Open my jobs" },
+  supplier: { label: "Supplier workspace", href: "/supplier", action: "Open supplier panel" },
 } as const;
 
 // Slim strip above the storefront header, shown only to staff.

@@ -5,7 +5,10 @@ import { InviteForm, type SupplierOption } from "./invite-form";
 
 export const metadata: Metadata = { title: "Invite users" };
 
-export default async function InvitePage() {
+// ?role=supplier_contact&supplier=<id> (from a store's "Invite a contact")
+// opens the form with that role and store chosen.
+export default async function InvitePage({ searchParams }: { searchParams: Promise<{ role?: string; supplier?: string }> }) {
+  const params = await searchParams;
   const supabase = await createClient();
   // Admins read every supplier (RLS "suppliers: admin all"), including pending
   // ones — a contact may be invited before the supplier goes live.
@@ -33,7 +36,11 @@ export default async function InvitePage() {
         </p>
       </div>
       <div className="mt-8">
-        <InviteForm suppliers={suppliers} />
+        <InviteForm
+          suppliers={suppliers}
+          initialRole={params.role === "supplier_contact" ? "supplier_contact" : undefined}
+          initialSupplierId={suppliers.some((s) => s.id === params.supplier) ? params.supplier : undefined}
+        />
       </div>
     </div>
   );

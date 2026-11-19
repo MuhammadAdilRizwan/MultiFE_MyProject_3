@@ -24,14 +24,22 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Errors = Partial<Record<"email" | "supplierId", string>>;
 
-export function InviteForm({ suppliers }: { suppliers: SupplierOption[] }) {
+export function InviteForm({
+  suppliers,
+  initialRole,
+  initialSupplierId,
+}: {
+  suppliers: SupplierOption[];
+  initialRole?: InviteRole;
+  initialSupplierId?: string;
+}) {
   const [pending, startTransition] = useTransition();
-  const [role, setRole] = useState<InviteRole>("agent");
+  const [role, setRole] = useState<InviteRole>(initialRole ?? "agent");
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [agentCode, setAgentCode] = useState("");
   const [region, setRegion] = useState("");
-  const [supplierId, setSupplierId] = useState("");
+  const [supplierId, setSupplierId] = useState(initialSupplierId ?? "");
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [sent, setSent] = useState<{ email: string; role: string } | null>(null);
