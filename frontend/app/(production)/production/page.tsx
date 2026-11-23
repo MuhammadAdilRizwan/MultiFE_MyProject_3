@@ -4,11 +4,23 @@ import Link from "next/link";
 import { Alert } from "@/components/ui/alert";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { DispatchQueue } from "@/components/production/dispatch-queue";
+import { StepFilter } from "@/components/production/step-filter";
 import { HeadingRule } from "@/components/ui/heading";
 import { formatOrderDate, orderStatusLabel, todayInPakistan } from "@/lib/order-status";
 import { logMessage } from "@/lib/describe-error";
 import { listMyJobs, listMyPastJobs, type JobListItem, type PastJob } from "@/lib/production-jobs";
-import { isJobDone, isJobOverdue, myStepLabel, stageLabel } from "@/lib/production-stage";
+import {
+  countJobSteps,
+  isJobDone,
+  isJobOverdue,
+  isJobStep,
+  jobStep,
+  jobStepLabel,
+  jobStepsFor,
+  myStepLabel,
+  stageLabel,
+  type ProductionRole,
+} from "@/lib/production-stage";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "My work" };
@@ -20,10 +32,15 @@ const VIEWS = [
 
 // FR-PRD-05: the signed-in tailor / QC user's own job queue; dispatch staff
 // get the delivery queue instead (FR-FUL).
-export default async function ProductionQueuePage({ searchParams }: { searchParams: Promise<{ view?: string; handed?: string }> }) {
+export default async function ProductionQueuePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string; handed?: string; step?: string }>;
+}) {
   const params = await searchParams;
   const profile = await getCurrentProfile(await createClient());
   if (profile?.role === "dispatch") return <DispatchQueue view={params.view} />;
+  const role: ProductionRole = profile?.role === "qc" ? "qc" : "tailor";
 
   const view = params.view === "done" ? "done" : "open";
   // Done = finished jobs still assigned to me + jobs I worked on and handed
@@ -42,8 +59,13 @@ export default async function ProductionQueuePage({ searchParams }: { searchPara
   const today = todayInPakistan();
   const open = (jobs ?? []).filter((j) => !isJobDone(j.stage, j.orderStatus));
   const done = (jobs ?? []).filter((j) => isJobDone(j.stage, j.orderStatus));
-  const shown = view === "done" ? done : open;
   const overdue = open.filter((j) => isJobOverdue(j, today)).length;
+
+  // "To do" step filter (?step=…): one chip per step of the work, start to end.
+  const stepCounts = countJobSteps(open, role);
+  const steps = jobStepsFor(role, stepCounts);
+  const step = view === "open" && isJobStep(params.step) && steps.includes(params.step) ? params.step : null;
+  const shown = view === "done" ? done : step ? open.filter((j) => jobStep(j.stage, j.orderStatus, role) === step) : open;
 
   return (
     <div>
@@ -94,19 +116,47 @@ export default async function ProductionQueuePage({ searchParams }: { searchPara
             )}
           </div>
 
+          {view === "open" && open.length > 0 && (
+            <div className="mt-4">
+              <StepFilter
+                value={step}
+                total={open.length}
+                options={steps.map((key, i) => ({
+                  value: key,
+                  label: key === "waiting" || key === "check" ? jobStepLabel(key) : `${i + 1}. ${jobStepLabel(key)}`,
+                  count: stepCounts[key],
+                }))}
+              />
+            </div>
+          )}
+
           {shown.length === 0 && (view === "open" || past.length === 0) ? (
             <div className="mt-6 rounded-3xl border border-dashed border-line bg-white/60 px-6 py-12 text-center">
               <p className="text-base font-semibold text-ink">
-                {view === "done" ? "No finished jobs yet" : "No jobs waiting for you"}
+                {view === "done" ? "No finished jobs yet" : step ? `No jobs at “${jobStepLabel(step)}”` : "No jobs waiting for you"}
               </p>
               <p className="mt-1 text-sm text-muted">
-                {view === "done" ? "Jobs you finish will be listed here." : "New jobs arrive here automatically as customers order."}
+                {view === "done"
+                  ? "Jobs you finish will be listed here."
+                  : step
+                    ? "Pick another step, or see all your jobs."
+                    : "New jobs arrive here automatically as customers order."}
               </p>
+              {step && (
+                <Link href="/production" className="mt-4 inline-flex text-sm font-semibold text-ocean hover:underline">
+                  Show all steps
+                </Link>
+              )}
             </div>
           ) : (
             <ul className="mt-6 grid gap-3 md:grid-cols-2">
               {shown.map((job) => (
-                <JobCard key={job.id} job={job} overdue={isJobOverdue(job, today)} />
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  overdue={isJobOverdue(job, today)}
+                  next={view === "open" ? jobStepLabel(jobStep(job.stage, job.orderStatus, role)) : null}
+                />
               ))}
               {view === "done" && past.map((job) => <PastJobCard key={job.id} job={job} />)}
             </ul>
@@ -117,7 +167,7 @@ export default async function ProductionQueuePage({ searchParams }: { searchPara
   );
 }
 
-function JobCard({ job, overdue }: { job: JobListItem; overdue: boolean }) {
+function JobCard({ job, overdue, next }: { job: JobListItem; overdue: boolean; next: string | null }) {
   const cancelled = job.orderStatus === "cancelled" || job.orderStatus === "failed";
   return (
     <li>
@@ -154,6 +204,11 @@ function JobCard({ job, overdue }: { job: JobListItem; overdue: boolean }) {
             </span>
             {job.dueDate && <span className="text-muted">Due {formatOrderDate(job.dueDate)}</span>}
           </span>
+          {next && !cancelled && (
+            <span className="mt-2 block text-xs text-ink">
+              <span className="font-semibold">Next:</span> {next}
+            </span>
+          )}
         </span>
       </Link>
     </li>

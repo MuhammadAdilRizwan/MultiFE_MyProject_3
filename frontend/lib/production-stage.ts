@@ -72,6 +72,53 @@ export function nextStep(stage: string, orderStatus: string, role: ProductionRol
   return { kind: "wait", text: "Nothing to do on this job right now." };
 }
 
+// Step filter on the "To do" list: every open job sits at exactly one step,
+// the one its job sheet's button does next (derived from nextStep, so the two
+// always agree). In workflow order, start to end.
+export type JobStep = "receive" | "approve" | "cut" | "stitch" | "send_qc" | "check" | "waiting";
+
+export const JOB_STEPS: { key: JobStep; label: string }[] = [
+  { key: "receive", label: "Fabric received" },
+  { key: "approve", label: "Approve measurements" },
+  { key: "cut", label: "Start cutting" },
+  { key: "stitch", label: "Cutting done – start stitching" },
+  { key: "send_qc", label: "Send to quality check" },
+  { key: "check", label: "Quality check" },
+  { key: "waiting", label: "Waiting" },
+];
+
+const ADVANCE_STEP: Partial<Record<ProductionStage, JobStep>> = { cutting: "cut", stitching: "stitch", qc: "send_qc" };
+
+export function jobStep(stage: string, orderStatus: string, role: ProductionRole): JobStep {
+  const step = nextStep(stage, orderStatus, role);
+  if (step.kind === "receive") return "receive";
+  if (step.kind === "approve") return "approve";
+  if (step.kind === "qc") return "check";
+  if (step.kind === "advance") return ADVANCE_STEP[step.to] ?? "waiting";
+  return "waiting";
+}
+
+export const jobStepLabel = (step: JobStep) => JOB_STEPS.find((s) => s.key === step)?.label ?? "Waiting";
+
+export const isJobStep = (value: string | undefined): value is JobStep => JOB_STEPS.some((s) => s.key === value);
+
+// The chips a role sees: a tailor's steps run from fabric received to sending
+// for quality check; QC also gets "Quality check". "Waiting" only appears
+// when something is actually waiting, so it never clutters the row.
+export function jobStepsFor(role: ProductionRole, counts: Record<JobStep, number>): JobStep[] {
+  return JOB_STEPS.map((s) => s.key).filter((key) => {
+    if (key === "check") return role === "qc";
+    if (key === "waiting") return counts.waiting > 0;
+    return true;
+  });
+}
+
+export function countJobSteps(jobs: { stage: string; orderStatus: string }[], role: ProductionRole): Record<JobStep, number> {
+  const counts = Object.fromEntries(JOB_STEPS.map((s) => [s.key, 0])) as Record<JobStep, number>;
+  for (const job of jobs) counts[jobStep(job.stage, job.orderStatus, role)] += 1;
+  return counts;
+}
+
 // Measurement values the approver changed from the customer's confirmed set
 // (FR-AI-15 — a correction needs a reason).
 export function changedMeasurements(confirmed: Record<string, number>, approved: Record<string, number>): string[] {

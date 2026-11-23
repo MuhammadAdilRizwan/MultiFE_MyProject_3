@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   changedMeasurements,
+  countJobSteps,
+  isJobStep,
+  jobStep,
+  jobStepLabel,
+  jobStepsFor,
   isJobDone,
   isJobOverdue,
   isProductionRole,
@@ -106,5 +111,52 @@ describe("myStepLabel", () => {
     expect(myStepLabel("qc")).toBe("Sent it to quality check");
     expect(myStepLabel("passed")).toBe("Passed quality check");
     expect(myStepLabel("weird")).toBe("Worked on it");
+  });
+});
+
+describe("job step filter", () => {
+  it("puts each open job at the step its sheet's button does next, in workflow order", () => {
+    expect(jobStep("pending", "fabric_secured", "tailor")).toBe("receive");
+    expect(jobStep("pending", "received_at_hub", "tailor")).toBe("approve");
+    expect(jobStep("approved", "measurements_approved", "tailor")).toBe("cut");
+    expect(jobStep("cutting", "in_cutting", "tailor")).toBe("stitch");
+    expect(jobStep("stitching", "in_stitching", "tailor")).toBe("send_qc");
+  });
+
+  it("gives QC their own check step and leaves a tailor's QC-stage job waiting", () => {
+    expect(jobStep("qc", "in_qc", "qc")).toBe("check");
+    expect(jobStep("qc", "in_qc", "tailor")).toBe("waiting");
+  });
+
+  it("counts anything that can't be acted on yet as waiting", () => {
+    expect(jobStep("pending", "placed", "tailor")).toBe("waiting");
+    expect(jobStep("weird", "placed", "tailor")).toBe("waiting");
+  });
+
+  it("counts jobs per step", () => {
+    const counts = countJobSteps(
+      [
+        { stage: "pending", orderStatus: "fabric_secured" },
+        { stage: "pending", orderStatus: "received_at_hub" },
+        { stage: "pending", orderStatus: "received_at_hub" },
+        { stage: "stitching", orderStatus: "in_stitching" },
+      ],
+      "tailor",
+    );
+    expect(counts).toEqual({ receive: 1, approve: 2, cut: 0, stitch: 0, send_qc: 1, check: 0, waiting: 0 });
+  });
+
+  it("shows tailors every making step, QC the check step too, and waiting only when used", () => {
+    const none = { receive: 0, approve: 0, cut: 0, stitch: 0, send_qc: 0, check: 0, waiting: 0 };
+    expect(jobStepsFor("tailor", none)).toEqual(["receive", "approve", "cut", "stitch", "send_qc"]);
+    expect(jobStepsFor("qc", none)).toEqual(["receive", "approve", "cut", "stitch", "send_qc", "check"]);
+    expect(jobStepsFor("tailor", { ...none, waiting: 2 })).toContain("waiting");
+  });
+
+  it("validates a step from the URL and labels it", () => {
+    expect(isJobStep("cut")).toBe(true);
+    expect(isJobStep("delete")).toBe(false);
+    expect(isJobStep(undefined)).toBe(false);
+    expect(jobStepLabel("stitch")).toBe("Cutting done – start stitching");
   });
 });
