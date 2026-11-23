@@ -61,10 +61,12 @@ export default async function ProductionQueuePage({
   const done = (jobs ?? []).filter((j) => isJobDone(j.stage, j.orderStatus));
   const overdue = open.filter((j) => isJobOverdue(j, today)).length;
 
-  // "To do" step filter (?step=…): one chip per step of the work, start to end.
+  // "To do" step filter (?step=…), tailors only: one option per step of their
+  // work, start to end. QC's list is never filtered.
+  const showStepFilter = role === "tailor" && view === "open";
   const stepCounts = countJobSteps(open, role);
   const steps = jobStepsFor(role, stepCounts);
-  const step = view === "open" && isJobStep(params.step) && steps.includes(params.step) ? params.step : null;
+  const step = showStepFilter && isJobStep(params.step) && steps.includes(params.step) ? params.step : null;
   const shown = view === "done" ? done : step ? open.filter((j) => jobStep(j.stage, j.orderStatus, role) === step) : open;
 
   return (
@@ -116,7 +118,7 @@ export default async function ProductionQueuePage({
             )}
           </div>
 
-          {view === "open" && open.length > 0 && (
+          {showStepFilter && open.length > 0 && (
             <div className="mt-4">
               <StepFilter
                 value={step}
