@@ -133,6 +133,42 @@ describe("fabric reservations and order_drafts: caller scoping", () => {
     expect(error?.message).toBe("Invalid quantity");
   });
 
+  it("the reservation-expiry cron job marks a lapsed soft hold 'expired' on its own", async () => {
+    const { data: draft, error: draftError } = await admin
+      .from("order_drafts")
+      .insert({ customer_id: customerB.userId, fabric_id: fabricId, template_id: templateId, options: {} })
+      .select("id")
+      .single();
+    if (draftError) throw draftError;
+    draftIds.push(draft.id as string);
+
+    // A soft hold whose 20 minutes are already up, but still 'active'.
+    const { data: hold, error: holdError } = await admin
+      .from("fabric_reservations")
+      .insert({
+        fabric_id: fabricId,
+        order_draft_id: draft.id,
+        metres: 3,
+        kind: "soft",
+        status: "active",
+        expires_at: new Date(Date.now() - 60 * 1000).toISOString(),
+      })
+      .select("id")
+      .single();
+    if (holdError) throw holdError;
+
+    // The job runs every minute; nothing in this test calls the sweep itself.
+    const deadline = Date.now() + 75 * 1000;
+    let status = "active";
+    while (Date.now() < deadline) {
+      const { data } = await admin.from("fabric_reservations").select("status").eq("id", hold.id).single();
+      status = (data as { status: string }).status;
+      if (status === "expired") break;
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+    expect(status).toBe("expired");
+  }, 90000);
+
   // ---- order_drafts --------------------------------------------------------
 
   it("a customer can create their own draft", async () => {
