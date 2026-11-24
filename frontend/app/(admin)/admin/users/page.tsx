@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
+import { countPendingDeletionRequests } from "@multife/backend/modules/users/accountDeletion";
 import { USERS_PAGE_SIZE, listUsers, type AdminUserRow } from "@multife/backend/modules/users/adminUsers";
 import type { AppRole } from "@multife/backend/modules/users/types";
 import { Pager, PageHeading, SearchForm } from "@/components/admin/list-controls";
@@ -45,11 +46,15 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   let result: { users: AdminUserRow[]; total: number } | null = null;
   let adminId: string | null = null;
+  let deletionRequests = 0;
   try {
     const admin = await activeAdmin();
     if (admin) {
       adminId = admin.adminId;
-      result = await listUsers(admin.supabase, { role: roleFilter.role, status: suspendedOnly ? "suspended" : undefined, query: search, page });
+      [result, deletionRequests] = await Promise.all([
+        listUsers(admin.supabase, { role: roleFilter.role, status: suspendedOnly ? "suspended" : undefined, query: search, page }),
+        countPendingDeletionRequests(admin.supabase),
+      ]);
     }
   } catch (error) {
     unstable_rethrow(error);
@@ -86,6 +91,12 @@ export default async function AdminUsersPage({ searchParams }: Props) {
           <Link href={href({ suspended: !suspendedOnly, page: 1 })} aria-pressed={suspendedOnly} className={chip(suspendedOnly)}>
             Suspended only
           </Link>
+          <Link href="/admin/users/deletions" className={chip(false)}>
+            Deletion requests
+            {deletionRequests > 0 && (
+              <span className="ml-1.5 rounded-full bg-warning px-1.5 text-[11px] font-bold leading-5 text-white">{deletionRequests}</span>
+            )}
+          </Link>
         </nav>
         <SearchForm
           action="/admin/users"
@@ -112,7 +123,11 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                     <p className="flex flex-wrap items-center gap-2">
                       <span className="truncate text-sm font-bold text-ink">{name}</span>
                       <span className="rounded-full bg-cream px-2 py-0.5 text-[11px] font-semibold text-ink">{ROLE_LABEL[u.role] ?? u.role}</span>
-                      {u.status === "suspended" && <span className="rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-bold text-danger">Suspended</span>}
+                      {u.deleted_at ? (
+                        <span className="rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-bold text-danger">Deleted {formatOrderDate(u.deleted_at)}</span>
+                      ) : (
+                        u.status === "suspended" && <span className="rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-bold text-danger">Suspended</span>
+                      )}
                       {u.is_provisional && <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-semibold text-warning">Invite not accepted</span>}
                     </p>
                     <p className="mt-0.5 truncate text-sm text-muted">
@@ -120,10 +135,14 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                     </p>
                     <p className="text-xs text-hint">Joined {formatOrderDate(u.created_at)}</p>
                   </div>
-                  <div className="flex flex-wrap items-start gap-2 sm:justify-end">
-                    <RoleControl key={`${u.id}-${u.role}`} userId={u.id} name={name} role={u.role} isSelf={u.id === adminId} />
-                    <StatusControl key={`${u.id}-${u.status}`} userId={u.id} name={name} status={u.status} isSelf={u.id === adminId} />
-                  </div>
+                  {u.deleted_at ? (
+                    <p className="text-xs text-hint sm:text-right">Account deleted at their request. Orders kept without their details.</p>
+                  ) : (
+                    <div className="flex flex-wrap items-start gap-2 sm:justify-end">
+                      <RoleControl key={`${u.id}-${u.role}`} userId={u.id} name={name} role={u.role} isSelf={u.id === adminId} />
+                      <StatusControl key={`${u.id}-${u.status}`} userId={u.id} name={name} status={u.status} isSelf={u.id === adminId} />
+                    </div>
+                  )}
                 </li>
               );
             })}

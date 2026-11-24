@@ -13,6 +13,16 @@ describe("auditActionLabel", () => {
   });
 });
 
+describe("account deletion entries", () => {
+  it("names the steps and summarises the orders kept", () => {
+    expect(auditActionLabel("user.deletion_requested")).toBe("Customer asked to delete their account");
+    expect(auditActionLabel("user.deleted")).toBe("Deleted a customer's account");
+    expect(auditSummary(null, { request_id: "r1", orders_kept: 2 })).toBe("2 orders kept without their details");
+    expect(auditSummary(null, { request_id: "r1", orders_kept: 1 })).toBe("1 order kept without their details");
+    expect(auditSummary(null, { request_id: "r1", note: "Open dispute" })).toBe("“Open dispute”");
+  });
+});
+
 describe("auditArea", () => {
   it("falls back to everything", () => {
     expect(auditArea("orders").prefix).toBe("order.");

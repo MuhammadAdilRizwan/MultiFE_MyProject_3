@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import { AccountTabs } from "@/components/account/account-tabs";
 import { BackLink } from "@/components/layout/back-link";
 import { PageTitle } from "@/components/order/page-title";
+import { DeleteAccount } from "@/components/account/delete-account";
 import { Alert } from "@/components/ui/alert";
 import { getMyProfileAction } from "./actions";
+import { getMyDeletionStateAction } from "./deletion-actions";
 import { ProfileEditor } from "./profile-editor";
 
 export const metadata: Metadata = { title: "My details" };
 
 export default async function MyDetailsPage() {
-  const profile = await getMyProfileAction();
+  const [profile, deletion] = await Promise.all([getMyProfileAction(), getMyDeletionStateAction()]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
@@ -22,6 +24,8 @@ export default async function MyDetailsPage() {
       <div className="mt-8">
         {profile.ok ? <ProfileEditor profile={profile.data} /> : <Alert tone="danger">{profile.error}</Alert>}
       </div>
+
+      {profile.ok && deletion.ok && <DeleteAccount initial={deletion.data} />}
     </div>
   );
 }

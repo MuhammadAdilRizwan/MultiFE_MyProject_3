@@ -148,6 +148,8 @@ export type Attention = {
   failedEmails: number;
   // UC-12: orders with an open dispute.
   openDisputes: { number: string }[];
+  // FR-AUTH-09: customers waiting for their account to be deleted.
+  deletionRequests: number;
 };
 
 // FR-PRD-08 and the admin's production to-dos, for the dashboard.
@@ -155,7 +157,7 @@ export async function getProductionAttention(): Promise<Attention> {
   const supabase = await createClient();
   const today = todayInPakistan();
 
-  const [overdue, unassigned, failed, declined, failedEmails, disputes] = await Promise.all([
+  const [overdue, unassigned, failed, declined, failedEmails, disputes, deletions] = await Promise.all([
     supabase
       .from("orders")
       .select("number, status, est_delivery_date", { count: "exact" })
@@ -181,7 +183,9 @@ export async function getProductionAttention(): Promise<Attention> {
       .eq("order.status", "received_at_hub"),
     supabase.from("notification_outbox").select("id", { count: "exact", head: true }).eq("status", "failed"),
     supabase.from("orders").select("number").not("dispute_opened_at", "is", null).order("dispute_opened_at").limit(20),
+    supabase.from("account_deletion_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
   ]);
+  if (deletions.error) throw deletions.error;
   if (disputes.error) throw disputes.error;
   if (declined.error) throw declined.error;
   if (failedEmails.error) throw failedEmails.error;
@@ -203,5 +207,6 @@ export async function getProductionAttention(): Promise<Attention> {
     correctionsDeclined: ((declined.data ?? []) as unknown as { order: { number: string } }[]).map((d) => ({ number: d.order.number })),
     failedEmails: failedEmails.count ?? 0,
     openDisputes: ((disputes.data ?? []) as { number: string }[]).map((d) => ({ number: d.number })),
+    deletionRequests: deletions.count ?? 0,
   };
 }

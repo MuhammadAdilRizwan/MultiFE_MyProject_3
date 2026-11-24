@@ -151,11 +151,11 @@ function Stat({ label, value, note }: { label: string; value: string; note?: str
 
 // FR-PRD-08 and the production to-dos only an admin can clear.
 function NeedsAttention({ attention }: { attention: Attention }) {
-  const { overdue, overdueCount, unassignedCount, remakesWaiting, correctionsDeclined, failedEmails, openDisputes } = attention;
-  if (overdueCount === 0 && unassignedCount === 0 && remakesWaiting.length === 0 && correctionsDeclined.length === 0 && failedEmails === 0 && openDisputes.length === 0) {
+  const { overdue, overdueCount, unassignedCount, remakesWaiting, correctionsDeclined, failedEmails, openDisputes, deletionRequests } = attention;
+  if (overdueCount === 0 && unassignedCount === 0 && remakesWaiting.length === 0 && correctionsDeclined.length === 0 && failedEmails === 0 && openDisputes.length === 0 && deletionRequests === 0) {
     return (
       <p className="mt-6 rounded-3xl border border-success/25 bg-success-soft px-5 py-4 text-sm font-semibold text-success">
-        Nothing needs attention: no overdue orders, every job is assigned, no remakes, disputes or declined measurements, no failed emails.
+        Nothing needs attention: no overdue orders, every job is assigned, no remakes, disputes or declined measurements, no failed emails, no account deletion requests.
       </p>
     );
   }
@@ -164,7 +164,7 @@ function NeedsAttention({ attention }: { attention: Attention }) {
       <h2 id="attention-heading" className="font-display text-xl text-ink">
         Needs attention
       </h2>
-      <div className="mt-4 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+      <div className="mt-4 grid gap-4 md:grid-cols-3 xl:grid-cols-4">
         <div>
           <p className="text-sm font-bold text-danger">
             {overdueCount} overdue {overdueCount === 1 ? "order" : "orders"}
@@ -230,6 +230,17 @@ function NeedsAttention({ attention }: { attention: Attention }) {
           {failedEmails > 0 && (
             <Link href="/admin/notifications" className="mt-1 inline-block text-sm font-semibold text-ocean hover:underline">
               Notifications →
+            </Link>
+          )}
+        </div>
+        <div>
+          <p className={`text-sm font-bold ${deletionRequests ? "text-warning" : "text-ink"}`}>
+            {deletionRequests} account deletion {deletionRequests === 1 ? "request" : "requests"}
+          </p>
+          <p className="text-xs text-muted">Customers who asked us to delete their account.</p>
+          {deletionRequests > 0 && (
+            <Link href="/admin/users/deletions" className="mt-1 inline-block text-sm font-semibold text-ocean hover:underline">
+              Deletion requests →
             </Link>
           )}
         </div>

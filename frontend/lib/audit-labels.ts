@@ -8,6 +8,10 @@ const LABELS: Record<string, string> = {
   "user.invite": "Sent an invite",
   "user.suspend": "Suspended an account",
   "user.reactivate": "Reactivated an account",
+  "user.deletion_requested": "Customer asked to delete their account",
+  "user.deletion_withdrawn": "Customer withdrew their deletion request",
+  "user.deletion_declined": "Declined an account deletion request",
+  "user.deleted": "Deleted a customer's account",
   "profile.claim": "Customer claimed their account",
   "order.cancel": "Cancelled an order",
   "order.fail": "Marked an order as failed",
@@ -63,6 +67,7 @@ export function auditSummary(before: unknown, after: unknown): string | null {
     return `${typeof was === "string" ? `${providerKindLabel(was)} → ` : ""}${providerKindLabel(a.provider_kind)}`;
   }
   if (typeof a.reason === "string" && a.reason) parts.push(`“${a.reason}”`);
+  if (typeof a.orders_kept === "number") parts.push(`${a.orders_kept} ${a.orders_kept === 1 ? "order" : "orders"} kept without their details`);
   if (typeof a.body === "string" && a.body) parts.push(`“${a.body}”`);
   if (typeof a.note === "string" && a.note) parts.push(`“${a.note}”`);
   if (typeof a.fabric_metres_lost === "number" || typeof a.fabric_metres_lost === "string") {

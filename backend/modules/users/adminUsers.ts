@@ -14,6 +14,8 @@ export interface AdminUserRow {
   status: AccountStatus;
   is_provisional: boolean;
   created_at: string;
+  // Set when the account was deleted at the customer's request (FR-AUTH-09).
+  deleted_at: string | null;
 }
 
 export interface ListUsersParams {
@@ -37,7 +39,7 @@ export async function listUsers(
   const page = Math.max(1, Math.floor(params.page ?? 1));
   let q = supabase
     .from("profiles")
-    .select("id, role, full_name, email, phone, status, is_provisional, created_at", { count: "exact" })
+    .select("id, role, full_name, email, phone, status, is_provisional, created_at, deleted_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range((page - 1) * USERS_PAGE_SIZE, page * USERS_PAGE_SIZE - 1);
   if (params.role) q = q.eq("role", params.role);
