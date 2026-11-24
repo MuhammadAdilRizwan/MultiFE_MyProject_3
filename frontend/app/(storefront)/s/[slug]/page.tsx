@@ -4,7 +4,7 @@ import { BrandBanner, BrandLogo } from "@/components/order/brand-mark";
 import { OrderTopBar } from "@/components/order/order-top-bar";
 import { Alert } from "@/components/ui/alert";
 import { getActiveBrandBySlug } from "@/lib/suppliers";
-import { listStoreFabricsAction } from "@/app/(storefront)/catalog-actions";
+import { getFabricStockAction, listStoreFabricsAction } from "@/app/(storefront)/catalog-actions";
 import { FabricLibrary } from "./fabric-library";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -17,6 +17,14 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   if (!brand) notFound();
   const result = await listStoreFabricsAction({ supplierId: brand.id });
   const fabrics = result.ok ? result.data : [];
+
+  // Metres left to sell per fabric (roll − fabric held for orders), for the
+  // availability filter. If the lookup fails, fall back to the roll on hand
+  // (the fabric page and checkout re-check anyway).
+  const stock = fabrics.length > 0 ? await getFabricStockAction({ fabricIds: fabrics.map((f) => f.id) }) : null;
+  const availableMetres = Object.fromEntries(
+    fabrics.map((f) => [f.id, (stock?.ok ? stock.data[f.id]?.availableMetres : undefined) ?? f.stock_metres]),
+  );
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
@@ -40,7 +48,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
         </section>
 
         {result.ok ? (
-          <FabricLibrary brandSlug={brand.slug} fabrics={fabrics} />
+          <FabricLibrary brandSlug={brand.slug} fabrics={fabrics} availableMetres={availableMetres} />
         ) : (
           <div className="mx-auto max-w-md px-4 py-12">
             <Alert tone="danger">We couldn&apos;t load this store&apos;s fabrics. Please refresh to try again.</Alert>
