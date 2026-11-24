@@ -10,26 +10,56 @@ import { buttonClasses } from "@/components/ui/button";
 import { inputClasses } from "@/components/ui/text-field";
 import type { StoreFabric } from "@/app/(storefront)/catalog-actions";
 import { fabricName, fabricProperties, formatPKR } from "@/lib/catalog";
+import {
+  AVAILABILITY_LABELS,
+  NO_FILTERS,
+  availabilityOf,
+  availabilityOptions,
+  filterFabrics,
+  hasFilters,
+  materialOptions,
+  type Availability,
+  type FabricFilters,
+} from "@/lib/fabric-filters";
 import { startDraft, useDraft } from "@/lib/order-draft";
 
 const propertyOf = (f: StoreFabric, key: string) => fabricProperties(f).find((p) => p.key === key)?.value ?? "";
 
-export function FabricLibrary({ brandSlug, fabrics }: { brandSlug: string; fabrics: StoreFabric[] }) {
+const selectClasses = `${inputClasses} h-11 pr-10 text-sm font-semibold`;
+
+export function FabricLibrary({
+  brandSlug,
+  fabrics,
+  availableMetres,
+}: {
+  brandSlug: string;
+  fabrics: StoreFabric[];
+  // Metres left to sell per fabric id (roll − fabric held for orders).
+  availableMetres: Record<string, number>;
+}) {
   const router = useRouter();
   const draft = useDraft();
-  const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState<FabricFilters>(NO_FILTERS);
   const [picked, setPicked] = useState<string | null>(null);
 
   // Returning customers see the fabric they already chose in this store.
   const selectedId = picked ?? (draft?.brandSlug === brandSlug ? draft.fabricId : null);
 
-  // Search by name or composition (e.g. "lawn", "silk", "cotton").
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return fabrics.filter((f) => !q || `${fabricName(f)} ${f.composition ?? ""}`.toLowerCase().includes(q));
-  }, [fabrics, query]);
+  const metresOf = (id: string) => availableMetres[id] ?? 0;
+  const materials = useMemo(() => materialOptions(fabrics), [fabrics]);
+  const availability = useMemo(
+    () => availabilityOptions(fabrics, (id) => availableMetres[id] ?? 0),
+    [fabrics, availableMetres],
+  );
 
-  const active = query.trim() !== "";
+  // Search by name or composition, plus the material and availability dropdowns.
+  const visible = useMemo(
+    () => filterFabrics(fabrics, filters, (id) => availableMetres[id] ?? 0),
+    [fabrics, filters, availableMetres],
+  );
+
+  const active = hasFilters(filters);
+  const update = (patch: Partial<FabricFilters>) => setFilters((current) => ({ ...current, ...patch }));
 
   function proceed() {
     if (!selectedId) return;
@@ -54,12 +84,55 @@ export function FabricLibrary({ brandSlug, fabrics }: { brandSlug: string; fabri
             <input
               id="fabric-search"
               type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              value={filters.query}
+              onChange={(e) => update({ query: e.target.value })}
               placeholder="Search fabrics..."
               className={`${inputClasses} pl-12`}
             />
           </div>
+
+          {fabrics.length > 0 && (
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              {materials.length > 0 && (
+                <div className="min-w-0">
+                  <label htmlFor="fabric-material" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
+                    Material
+                  </label>
+                  <select
+                    id="fabric-material"
+                    value={filters.material}
+                    onChange={(e) => update({ material: e.target.value })}
+                    className={selectClasses}
+                  >
+                    <option value="">All materials ({fabrics.length})</option>
+                    {materials.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label} ({o.count})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className={`min-w-0 ${materials.length > 0 ? "" : "col-span-2 sm:col-span-1"}`}>
+                <label htmlFor="fabric-availability" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
+                  Availability
+                </label>
+                <select
+                  id="fabric-availability"
+                  value={filters.availability}
+                  onChange={(e) => update({ availability: e.target.value as Availability | "" })}
+                  className={selectClasses}
+                >
+                  <option value="">Any availability ({fabrics.length})</option>
+                  {availability.map((o) => (
+                    <option key={o.value} value={o.value} disabled={o.count === 0 && filters.availability !== o.value}>
+                      {o.label} ({o.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         {fabrics.length === 0 ? (
@@ -73,6 +146,7 @@ export function FabricLibrary({ brandSlug, fabrics }: { brandSlug: string; fabri
               const selected = f.id === selectedId;
               const name = fabricName(f);
               const tag = propertyOf(f, "fibre");
+              const stockState = availabilityOf(metresOf(f.id));
               return (
                 <li key={f.id}>
                   <button
@@ -103,6 +177,13 @@ export function FabricLibrary({ brandSlug, fabrics }: { brandSlug: string; fabri
                         <span className="mt-0.5 block text-xs font-semibold text-muted">
                           {formatPKR(f.price_per_metre)} / m
                         </span>
+                        {stockState !== "in_stock" && (
+                          <span
+                            className={`mt-0.5 block text-xs font-semibold ${stockState === "out_of_stock" ? "text-danger" : "text-warning"}`}
+                          >
+                            {AVAILABILITY_LABELS[stockState]}
+                          </span>
+                        )}
                       </span>
                       {tag && (
                         <span className="hidden flex-none text-[11px] font-semibold uppercase tracking-wide text-ocean sm:inline">
@@ -117,9 +198,18 @@ export function FabricLibrary({ brandSlug, fabrics }: { brandSlug: string; fabri
           </ul>
         ) : (
           <div className="mx-auto mt-10 max-w-md text-center">
-            <p className="text-base font-semibold text-ink">No fabrics match &ldquo;{query.trim()}&rdquo;.</p>
-            <button type="button" onClick={() => setQuery("")} className="mt-3 text-sm font-semibold text-ocean hover:underline">
-              Clear search
+            <p className="text-base font-semibold text-ink">
+              {filters.query.trim() ? (
+                <>
+                  No fabrics match &ldquo;{filters.query.trim()}&rdquo;
+                  {filters.material || filters.availability ? " with these filters" : ""}.
+                </>
+              ) : (
+                "No fabrics match these filters."
+              )}
+            </p>
+            <button type="button" onClick={() => setFilters(NO_FILTERS)} className="mt-3 text-sm font-semibold text-ocean hover:underline">
+              Clear search and filters
             </button>
           </div>
         )}
