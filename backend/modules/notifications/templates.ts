@@ -54,6 +54,15 @@ const COPY: Record<string, Copy> = {
       "Your order is paused until you accept or decline the changes on your order page.",
     ],
   },
+  measurement_correction_price: {
+    subject: (n) => `Please check your measurements and new price for order ${n}`,
+    lines: (p) => [
+      "Our tailor checked your measurements and suggests some changes before cutting your fabric.",
+      ...(p.reason ? [`Tailor's note: ${p.reason}`] : []),
+      "These changes also change how much fabric your outfit needs, so the price may change. Your order page shows the new price.",
+      "Your order is paused until you accept or decline the changes on your order page.",
+    ],
+  },
   order_dispatched: {
     subject: (n) => `Your MultiFe order ${n} is on its way`,
     lines: () => ["Your outfit has been handed to the courier. The courier and tracking number are on your order page."],

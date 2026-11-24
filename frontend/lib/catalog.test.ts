@@ -26,6 +26,12 @@ describe("estimateFabricMetres", () => {
   it("returns null when the template has no formula yet", () => {
     expect(estimateFabricMetres({ yardage_formula: {} as never, required_measurements }, { properties: {} })).toBeNull();
   });
+
+  it("uses the customer's own measurements where given, nominal for the rest", () => {
+    // (4.5 + 0.015 × 90) × 1.1
+    expect(estimateFabricMetres({ yardage_formula: formula, required_measurements }, { properties: {} }, {}, { chest: 90 })).toBe(6.435);
+    expect(estimateFabricMetres({ yardage_formula: formula, required_measurements }, { properties: {} }, {}, { hip: 100 })).toBe(6.765);
+  });
 });
 
 describe("estimateOrderFrom", () => {

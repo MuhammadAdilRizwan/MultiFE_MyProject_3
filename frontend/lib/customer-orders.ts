@@ -52,6 +52,9 @@ export type OrderDetail = OrderListItem & {
     reason: string;
     responseNote: string | null;
     createdAt: string;
+    // FR-AI-17: when the correction changes the fabric needed, and so the
+    // price (read under the customer / placing agent / admin policies).
+    priceChange: { yardageBefore: number; yardageAfter: number; totalBefore: number; totalAfter: number } | null;
   } | null;
   shipment: {
     courier: string | null;
@@ -204,7 +207,7 @@ export async function getMyOrder(number: string, scope: OrderScope = "customer")
   // self / admin all". Superseded ones are history only.
   const { data: correctionRow, error: correctionError } = await supabase
     .from("measurement_corrections")
-    .select("id, status, original, proposed, reason, response_note, created_at")
+    .select("id, status, original, proposed, reason, response_note, created_at, yardage_before, yardage_after")
     .eq("order_id", row.id)
     .neq("status", "superseded")
     .order("created_at", { ascending: false })
@@ -219,7 +222,28 @@ export async function getMyOrder(number: string, scope: OrderScope = "customer")
     reason: string;
     response_note: string | null;
     created_at: string;
+    yardage_before: number | string | null;
+    yardage_after: number | string | null;
   } | null;
+
+  let priceChange: NonNullable<OrderDetail["correction"]>["priceChange"] = null;
+  if (correction && correction.yardage_before !== null && correction.yardage_after !== null) {
+    const { data: price, error: priceError } = await supabase
+      .from("measurement_correction_prices")
+      .select("total_before, total_after")
+      .eq("correction_id", correction.id)
+      .maybeSingle();
+    if (priceError) throw priceError;
+    const p = price as { total_before: number | string; total_after: number | string } | null;
+    if (p) {
+      priceChange = {
+        yardageBefore: Number(correction.yardage_before),
+        yardageAfter: Number(correction.yardage_after),
+        totalBefore: Number(p.total_before),
+        totalAfter: Number(p.total_after),
+      };
+    }
+  }
 
   const { data: shipmentRow, error: shipmentError } = await supabase
     .from("shipments")
@@ -252,6 +276,7 @@ export async function getMyOrder(number: string, scope: OrderScope = "customer")
           reason: correction.reason,
           responseNote: correction.response_note,
           createdAt: correction.created_at,
+          priceChange,
         }
       : null,
     shipment: shipment

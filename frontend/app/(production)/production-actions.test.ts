@@ -13,7 +13,10 @@ vi.mock("@multife/backend/modules/production/advanceStage", () => ({ advanceStag
 vi.mock("@multife/backend/modules/production/recordFabricReceived", () => ({ recordFabricReceived: vi.fn() }));
 vi.mock("@/lib/production-jobs", () => ({ getMyJob: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ kickNotifications: vi.fn() }));
-vi.mock("@multife/backend/modules/production/measurementCorrections", () => ({ requestMeasurementCorrection: vi.fn() }));
+vi.mock("@multife/backend/modules/production/measurementCorrections", () => ({
+  requestMeasurementCorrection: vi.fn(),
+  getJobCorrectionEffect: vi.fn(),
+}));
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
@@ -23,13 +26,14 @@ import { approveForProduction } from "@multife/backend/modules/production/approv
 import { advanceStage } from "@multife/backend/modules/production/advanceStage";
 import { recordFabricReceived } from "@multife/backend/modules/production/recordFabricReceived";
 import { getMyJob } from "@/lib/production-jobs";
-import { requestMeasurementCorrection } from "@multife/backend/modules/production/measurementCorrections";
+import { getJobCorrectionEffect, requestMeasurementCorrection } from "@multife/backend/modules/production/measurementCorrections";
 import {
   advanceStageAction,
   approveForProductionAction,
   approveJobMeasurementsAction,
   assignProductionJobAction,
   listJobQueueAction,
+  previewJobCorrectionAction,
   recordFabricReceivedAction,
 } from "./production-actions";
 
@@ -176,10 +180,14 @@ describe("recordFabricReceivedAction", () => {
   });
 });
 
+const noChange = { changesFabric: false, yardageBefore: 4, yardageAfter: 4, needsCustomer: false };
+
 describe("approveJobMeasurementsAction", () => {
   beforeEach(() => {
     vi.mocked(approveForProduction).mockReset();
     vi.mocked(requestMeasurementCorrection).mockReset();
+    vi.mocked(getJobCorrectionEffect).mockReset();
+    vi.mocked(getJobCorrectionEffect).mockResolvedValue(noChange);
     vi.mocked(getMyJob).mockResolvedValue({
       confirmedMeasurements: { chest: 90, waist: 70 },
       correctionThreshold: 2,
@@ -214,6 +222,7 @@ describe("approveJobMeasurementsAction", () => {
 
   it("sends a correction beyond the threshold to the customer instead of approving", async () => {
     activeAs("tailor");
+    vi.mocked(getJobCorrectionEffect).mockResolvedValue({ ...noChange, needsCustomer: true });
     vi.mocked(requestMeasurementCorrection).mockResolvedValue({ id: "c1" } as never);
     const result = await approveJobMeasurementsAction({ jobId: UUID1, values: { chest: 95, waist: 70 }, reason: "Re-measured" });
     expect(result).toEqual({ ok: true, data: { status: "received_at_hub", outcome: "sent_to_customer" } });
@@ -235,6 +244,16 @@ describe("approveJobMeasurementsAction", () => {
     expect(requestMeasurementCorrection).not.toHaveBeenCalled();
   });
 
+  it("sends a small correction that changes the fabric to the customer (FR-AI-17)", async () => {
+    activeAs("tailor");
+    vi.mocked(getJobCorrectionEffect).mockResolvedValue({ changesFabric: true, yardageBefore: 4, yardageAfter: 4.2, needsCustomer: true });
+    vi.mocked(requestMeasurementCorrection).mockResolvedValue({ id: "c2" } as never);
+    const result = await approveJobMeasurementsAction({ jobId: UUID1, values: { chest: 91.5, waist: 70 }, reason: "Re-measured" });
+    expect(result).toEqual({ ok: true, data: { status: "received_at_hub", outcome: "sent_to_customer" } });
+    expect(getJobCorrectionEffect).toHaveBeenCalledWith(fakeSupabase, { jobId: UUID1, values: { chest: 91.5, waist: 70 } });
+    expect(approveForProduction).not.toHaveBeenCalled();
+  });
+
   it("passes the reason with a correction", async () => {
     activeAs("tailor");
     vi.mocked(approveForProduction).mockResolvedValue({ status: "measurements_approved" } as never);
@@ -244,5 +263,26 @@ describe("approveJobMeasurementsAction", () => {
       values: { chest: 92, waist: 70 },
       reason: "Re-measured at fitting",
     });
+  });
+});
+
+describe("previewJobCorrectionAction", () => {
+  beforeEach(() => {
+    vi.mocked(getJobCorrectionEffect).mockReset();
+  });
+
+  it("returns the database's view of the change, metres only", async () => {
+    activeAs("tailor");
+    const effect = { changesFabric: true, yardageBefore: 4, yardageAfter: 4.3, needsCustomer: true };
+    vi.mocked(getJobCorrectionEffect).mockResolvedValue(effect);
+    expect(await previewJobCorrectionAction({ jobId: UUID1, values: { chest: 96 } })).toEqual({ ok: true, data: effect });
+  });
+
+  it("refuses non-approvers and bad input", async () => {
+    activeAs("dispatch");
+    expect((await previewJobCorrectionAction({ jobId: UUID1, values: { chest: 96 } })).ok).toBe(false);
+    activeAs("tailor");
+    expect((await previewJobCorrectionAction({ jobId: "nope", values: {} })).ok).toBe(false);
+    expect(getJobCorrectionEffect).not.toHaveBeenCalled();
   });
 });

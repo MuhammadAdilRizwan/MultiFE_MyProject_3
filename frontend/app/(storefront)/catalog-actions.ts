@@ -12,9 +12,11 @@ import { isTemplateCompatibleWithFabric } from "@multife/backend/modules/rules/i
 import type { EvaluatedOptionGroup, TemplateOptionInput } from "@multife/backend/modules/rules/types";
 import { getCurrentAgent } from "@multife/backend/modules/agents/getCurrentAgent";
 import { getMyCustomer } from "@multife/backend/modules/agents/getMyCustomer";
+import { getLatestConfirmedProfile } from "@multife/backend/modules/measurements/getMeasurementProfile";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
 import { describeError } from "@/lib/describe-error";
+import { fabricFit, type FabricFit } from "@/lib/fabric-fit";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveBrandBySlug, type ActiveBrand } from "@/lib/suppliers";
 
@@ -82,6 +84,37 @@ export async function getFabricStockAction(
   try {
     const supabase = await createClient();
     return ok(Object.fromEntries(await getFabricStock(supabase, parsed.data.fabricIds)));
+  } catch (error) {
+    return fail(describeError(error));
+  }
+}
+
+const getTemplateFitSchema = z.object({ fabricId: z.string().uuid() });
+
+// FR-FAB-17: for each published template, does enough of this fabric remain
+// for an outfit in the customer's size? Signed-in customers are sized from
+// their latest confirmed measurements; everyone else from the template's
+// standard size. Stock is roll on hand − fabric held for orders and
+// checkouts. The values themselves stay on the server.
+export async function getTemplateFitAction(input: z.infer<typeof getTemplateFitSchema>): Promise<ActionResult<FabricFit>> {
+  const parsed = getTemplateFitSchema.safeParse(input);
+  if (!parsed.success) return fail("Invalid input.");
+
+  try {
+    const supabase = await createClient();
+    const fabric = await getFabric(supabase, parsed.data.fabricId);
+    if (!fabric || !isOrderable(fabric)) return fail("Fabric not found.");
+
+    const [stock, templates, actor] = await Promise.all([
+      getFabricStock(supabase, [fabric.id]),
+      listTemplates(supabase),
+      getCurrentProfile(supabase),
+    ]);
+    const available = stock.get(fabric.id)?.availableMetres ?? fabric.stock_metres;
+    const saved =
+      actor?.role === "customer" && actor.status === "active" ? await getLatestConfirmedProfile(supabase, actor.id) : null;
+
+    return ok(fabricFit(templates.filter((t) => t.is_published), fabric, available, saved?.measurement_values ?? null));
   } catch (error) {
     return fail(describeError(error));
   }

@@ -5,14 +5,18 @@ import { advanceStage } from "@multife/backend/modules/production/advanceStage";
 import { approveForProduction } from "@multife/backend/modules/production/approveForProduction";
 import { assignProductionJob } from "@multife/backend/modules/production/assignProductionJob";
 import { listJobQueue } from "@multife/backend/modules/production/listJobQueue";
-import { requestMeasurementCorrection } from "@multife/backend/modules/production/measurementCorrections";
+import {
+  getJobCorrectionEffect,
+  requestMeasurementCorrection,
+  type CorrectionEffect,
+} from "@multife/backend/modules/production/measurementCorrections";
 import { recordFabricReceived } from "@multife/backend/modules/production/recordFabricReceived";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { ok, fail, type ActionResult } from "@/lib/action-result";
 import { describeError } from "@/lib/describe-error";
 import { kickNotifications } from "@/lib/notifications";
 import { getMyJob } from "@/lib/production-jobs";
-import { changedMeasurements, maxMeasurementChange, sameMeasurements } from "@/lib/production-stage";
+import { changedMeasurements } from "@/lib/production-stage";
 import { createClient } from "@/lib/supabase/server";
 
 // Composes already-tested backend modules (production + users) — no
@@ -154,9 +158,11 @@ const approveJobSchema = z.object({
 // FR-AI-14/15: the approver checks the confirmed measurements before cutting.
 // Changing any value is a correction and needs a reason; the customer's own
 // confirmed set is kept on their measurement profile either way.
-// FR-AI-16: a change beyond the threshold goes to the customer first
-// (outcome "sent_to_customer"); once they accept exactly those values, the
-// same call approves them. The database enforces the same rule.
+// FR-AI-16/17: a change beyond the threshold, or one that changes the fabric
+// needed (and so the price), goes to the customer first (outcome
+// "sent_to_customer"); once they accept exactly those values, the same call
+// approves them. The database decides (fn_job_correction_effect) and enforces
+// the same rule on approval.
 export async function approveJobMeasurementsAction(
   input: z.infer<typeof approveJobSchema>,
 ): Promise<ActionResult<{ status: string; outcome: "approved" | "sent_to_customer" }>> {
@@ -177,9 +183,8 @@ export async function approveJobMeasurementsAction(
       return fail("You changed some measurements. Say why, so the change is on record.");
     }
 
-    const big = maxMeasurementChange(job.confirmedMeasurements, parsed.data.values) > job.correctionThreshold;
-    const accepted = job.correction?.status === "accepted" && sameMeasurements(job.correction.proposed, parsed.data.values);
-    if (big && !accepted) {
+    const effect = await getJobCorrectionEffect(supabase, { jobId: parsed.data.jobId, values: parsed.data.values });
+    if (effect.needsCustomer) {
       await requestMeasurementCorrection(supabase, { jobId: parsed.data.jobId, values: parsed.data.values, reason: reason as string });
       kickNotifications(); // measurement_correction email
       return ok({ status: job.orderStatus, outcome: "sent_to_customer" });
@@ -187,6 +192,26 @@ export async function approveJobMeasurementsAction(
 
     const order = await approveForProduction(supabase, { jobId: parsed.data.jobId, values: parsed.data.values, reason });
     return ok({ status: order.status, outcome: "approved" });
+  } catch (error) {
+    return fail(describeError(error));
+  }
+}
+
+// FR-AI-17: before the tailor presses the button, whether these values change
+// the fabric (metres before/after) and need the customer. No prices.
+export async function previewJobCorrectionAction(
+  input: Pick<z.infer<typeof approveJobSchema>, "jobId" | "values">,
+): Promise<ActionResult<CorrectionEffect>> {
+  const parsed = approveJobSchema.pick({ jobId: true, values: true }).safeParse(input);
+  if (!parsed.success) return fail("Enter every measurement as a number.");
+
+  try {
+    const supabase = await createClient();
+    const actor = await getCurrentProfile(supabase);
+    if (!actor || !isApprovalRole(actor.role) || actor.status !== "active") {
+      return fail("Only a tailor or QC can check measurements.");
+    }
+    return ok(await getJobCorrectionEffect(supabase, parsed.data));
   } catch (error) {
     return fail(describeError(error));
   }

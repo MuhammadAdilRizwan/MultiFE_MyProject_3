@@ -32,3 +32,13 @@ describe("renderEmail", () => {
     );
   });
 });
+
+describe("measurement_correction_price", () => {
+  it("says the price may change and points to the order page", () => {
+    const email = renderEmail("measurement_correction_price", { order_number: "MF-2026-000001", reason: "Chest 4 cm larger" }, "https://multife.test");
+    expect(email.subject).toBe("Please check your measurements and new price for order MF-2026-000001");
+    expect(email.text).toContain("Tailor's note: Chest 4 cm larger");
+    expect(email.text).toContain("the price may change");
+    expect(email.text).toContain("https://multife.test/account/orders/MF-2026-000001");
+  });
+});

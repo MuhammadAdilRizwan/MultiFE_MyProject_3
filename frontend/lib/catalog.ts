@@ -58,12 +58,15 @@ export function estimateFabricMetres(
   template: Pick<TemplateRow, "yardage_formula" | "required_measurements">,
   fabric: Pick<FabricRow, "properties">,
   selection: OptionSelection = {},
+  // A customer's own measurements, where known; nominal size fills the rest.
+  measurements: Record<string, number> | null = null,
 ): number | null {
   const formula = template.yardage_formula;
   if (!formula || typeof formula.base_metres !== "number") return null;
+  const own = Object.fromEntries(Object.entries(measurements ?? {}).filter(([, v]) => typeof v === "number" && Number.isFinite(v)));
   return estimateYardage({
     yardageFormula: { base_metres: formula.base_metres, coefficients: formula.coefficients ?? {}, wastage_margin: formula.wastage_margin ?? 0 },
-    measurements: nominalMeasurements(template.required_measurements),
+    measurements: { ...nominalMeasurements(template.required_measurements), ...own },
     selection,
     fabricHasDirectionalPattern: hasDirectionalPattern(fabric),
   });

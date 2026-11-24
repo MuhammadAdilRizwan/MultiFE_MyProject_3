@@ -49,6 +49,9 @@ export type JobSheet = JobListItem & {
     responseNote: string | null;
     respondedAt: string | null;
     createdAt: string;
+    // FR-AI-17: set when it changes the fabric needed (metres only).
+    yardageBefore: number | null;
+    yardageAfter: number | null;
   } | null;
 };
 
@@ -226,7 +229,7 @@ export async function getMyJob(jobId: string): Promise<JobSheet | null> {
     supabase.rpc("fn_measurement_correction_threshold"),
     supabase
       .from("measurement_corrections")
-      .select("status, proposed, reason, response_note, responded_at, created_at")
+      .select("status, proposed, reason, response_note, responded_at, created_at, yardage_before, yardage_after")
       .eq("job_id", job.id)
       .neq("status", "superseded")
       .order("created_at", { ascending: false })
@@ -245,6 +248,8 @@ export async function getMyJob(jobId: string): Promise<JobSheet | null> {
     response_note: string | null;
     responded_at: string | null;
     created_at: string;
+    yardage_before: number | string | null;
+    yardage_after: number | string | null;
   } | null;
 
   const measurements = item?.measurements ?? {};
@@ -270,7 +275,16 @@ export async function getMyJob(jobId: string): Promise<JobSheet | null> {
     })),
     correctionThreshold: Number(threshold.data),
     correction: c
-      ? { status: c.status, proposed: c.proposed, reason: c.reason, responseNote: c.response_note, respondedAt: c.responded_at, createdAt: c.created_at }
+      ? {
+          status: c.status,
+          proposed: c.proposed,
+          reason: c.reason,
+          responseNote: c.response_note,
+          respondedAt: c.responded_at,
+          createdAt: c.created_at,
+          yardageBefore: c.yardage_before === null ? null : Number(c.yardage_before),
+          yardageAfter: c.yardage_after === null ? null : Number(c.yardage_after),
+        }
       : null,
   };
 }

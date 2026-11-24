@@ -18,6 +18,7 @@ const LABELS: Record<string, string> = {
   "order.note": "Added an internal note",
   "order.dispute_open": "Opened a dispute",
   "order.dispute_resolve": "Resolved a dispute",
+  "order.price_changed": "Order price changed after a measurement correction",
   "agent.order_placed": "Agent placed an order",
   "agent.consent_recorded": "Agent recorded customer consent",
   "agent.measurements_confirmed": "Agent confirmed measurements",
@@ -67,6 +68,9 @@ export function auditSummary(before: unknown, after: unknown): string | null {
     return `${typeof was === "string" ? `${providerKindLabel(was)} → ` : ""}${providerKindLabel(a.provider_kind)}`;
   }
   if (typeof a.reason === "string" && a.reason) parts.push(`“${a.reason}”`);
+  if (typeof a.total === "number" && typeof b.total === "number") {
+    parts.push(`PKR ${b.total.toLocaleString("en-PK")} → PKR ${a.total.toLocaleString("en-PK")}`);
+  }
   if (typeof a.orders_kept === "number") parts.push(`${a.orders_kept} ${a.orders_kept === 1 ? "order" : "orders"} kept without their details`);
   if (typeof a.body === "string" && a.body) parts.push(`“${a.body}”`);
   if (typeof a.note === "string" && a.note) parts.push(`“${a.note}”`);

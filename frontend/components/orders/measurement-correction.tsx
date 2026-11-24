@@ -7,6 +7,7 @@ import { respondToCorrectionAction } from "@/app/(customer)/account/orders/corre
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
+import { formatMetres, formatPKR } from "@/lib/catalog";
 import type { OrderDetail } from "@/lib/customer-orders";
 
 const LABELS = new Map(STANDARD_MEASUREMENTS.map((f) => [f.key, f.label]));
@@ -97,6 +98,8 @@ export function MeasurementCorrectionCard({
         </tbody>
       </table>
 
+      {correction.priceChange && <PriceChange change={correction.priceChange} status={correction.status} audience={audience} />}
+
       {correction.status === "declined" && correction.responseNote && (
         <p className="mt-3 text-sm text-muted">Reply: “{correction.responseNote}”</p>
       )}
@@ -141,5 +144,42 @@ export function MeasurementCorrectionCard({
         </div>
       )}
     </section>
+  );
+}
+
+// FR-AI-17: the correction changes the fabric needed, so the price may change
+// too. Shown before the customer answers; once accepted it is the order's.
+function PriceChange({
+  change,
+  status,
+  audience,
+}: {
+  change: NonNullable<NonNullable<OrderDetail["correction"]>["priceChange"]>;
+  status: "pending" | "accepted" | "declined";
+  audience: "customer" | "agent" | "admin";
+}) {
+  const diff = Math.round((change.totalAfter - change.totalBefore) * 100) / 100;
+  const your = audience === "customer" ? "your" : "the";
+  const priceLine =
+    diff === 0
+      ? `The price stays ${formatPKR(change.totalAfter)}.`
+      : `${audience === "customer" ? "Your" : "The"} price ${diff > 0 ? "goes up" : "goes down"} by ${formatPKR(Math.abs(diff))}: ${formatPKR(change.totalBefore)} → ${formatPKR(change.totalAfter)}.`;
+
+  return (
+    <div className="mt-4 rounded-2xl border border-cyan-bright/30 bg-cyan-bright/10 px-4 py-3 text-sm leading-6 text-ink">
+      <p className="font-semibold">
+        {status === "accepted" ? "Fabric and price updated" : status === "declined" ? "Fabric and price not changed" : "This changes the fabric and price"}
+      </p>
+      <p className="mt-1">
+        Fabric needed: {formatMetres(change.yardageBefore)} → <span className="font-semibold">{formatMetres(change.yardageAfter)}</span>.
+      </p>
+      <p>{priceLine}</p>
+      {status === "pending" && diff !== 0 && (
+        <p className="mt-1 text-muted">
+          If {audience === "customer" ? "you accept" : "this is accepted"}, {your} order is updated to the new price
+          {audience === "admin" ? "" : ", paid on delivery as before"}.
+        </p>
+      )}
+    </div>
   );
 }

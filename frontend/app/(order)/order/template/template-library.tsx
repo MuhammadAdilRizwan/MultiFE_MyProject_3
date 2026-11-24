@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { DELIVERY_DAYS } from "@multife/backend/modules/rules/orderSummary";
 import type { TemplateRow } from "@multife/backend/modules/catalog/types";
-import { listCompatibleTemplatesForFabricAction } from "@/app/(storefront)/catalog-actions";
+import { getTemplateFitAction, listCompatibleTemplatesForFabricAction } from "@/app/(storefront)/catalog-actions";
 import { ActionBar, ArrowIcon } from "@/components/order/action-bar";
 import { SelectedBadge, optionCardClasses } from "@/components/order/option-card";
 import { OrderGate, type OrderContext } from "@/components/order/order-gate";
@@ -13,11 +13,14 @@ import { OrderTopBar } from "@/components/order/order-top-bar";
 import { PageTitle } from "@/components/order/page-title";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { estimateOrderFrom, formatPKR, templateImage } from "@/lib/catalog";
+import { estimateOrderFrom, formatMetres, formatPKR, templateImage } from "@/lib/catalog";
+import type { FabricFit } from "@/lib/fabric-fit";
 import { updateDraft } from "@/lib/order-draft";
 import { ensureRemoteDraft } from "@/lib/order-sync";
 
-type Loaded = { fabricId: string; templates: TemplateRow[] | null };
+// fit: FR-FAB-17 — null if the stock check failed (then nothing is blocked
+// here; the fabric hold at the measurements step still checks).
+type Loaded = { fabricId: string; templates: TemplateRow[] | null; fit: FabricFit | null };
 
 export function TemplateLibrary() {
   return <OrderGate>{(ctx) => <Library ctx={ctx} />}</OrderGate>;
@@ -34,14 +37,21 @@ function Library({ ctx }: { ctx: OrderContext }) {
   // FR-CUS-06: only templates this fabric's supported options can make.
   useEffect(() => {
     let cancelled = false;
-    listCompatibleTemplatesForFabricAction({ fabricId: fabric.id })
-      .then((result) => {
+    Promise.all([
+      listCompatibleTemplatesForFabricAction({ fabricId: fabric.id }),
+      getTemplateFitAction({ fabricId: fabric.id }).catch(() => null),
+    ])
+      .then(([result, fit]) => {
         if (!cancelled) {
-          setLoaded({ fabricId: fabric.id, templates: result.ok ? result.data.filter((t) => t.is_published) : null });
+          setLoaded({
+            fabricId: fabric.id,
+            templates: result.ok ? result.data.filter((t) => t.is_published) : null,
+            fit: fit?.ok ? fit.data : null,
+          });
         }
       })
       .catch(() => {
-        if (!cancelled) setLoaded({ fabricId: fabric.id, templates: null });
+        if (!cancelled) setLoaded({ fabricId: fabric.id, templates: null, fit: null });
       });
     return () => {
       cancelled = true;
@@ -49,7 +59,10 @@ function Library({ ctx }: { ctx: OrderContext }) {
   }, [fabric.id]);
 
   const templates = loaded?.fabricId === fabric.id ? loaded.templates : undefined;
-  const selectedId = picked ?? (templates?.some((t) => t.id === draft.templateId) ? draft.templateId : null);
+  const fit = loaded?.fabricId === fabric.id ? loaded.fit : null;
+  const fits = (id: string) => fit?.fits[id]?.enough !== false;
+  const selectedId = picked ?? (templates?.some((t) => t.id === draft.templateId && fits(t.id)) ? draft.templateId : null);
+  const shortCount = templates ? templates.filter((t) => !fits(t.id)).length : 0;
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
@@ -72,18 +85,31 @@ function Library({ ctx }: { ctx: OrderContext }) {
               <p className="mt-2 text-sm text-muted">Try another fabric from {brand.name}.</p>
             </div>
           ) : (
+            <>
+            {shortCount > 0 && (
+              <div className="mx-auto mt-6 max-w-2xl">
+                <Alert tone={shortCount === templates.length ? "warning" : "info"}>
+                  {shortCount === templates.length
+                    ? `There isn't enough of this fabric left for any outfit${fit?.basis === "saved" ? " in your size" : ""} (${formatMetres(fit?.availableMetres ?? 0)} left). Please choose another fabric from ${brand.name}.`
+                    : `Some outfits need more of this fabric than is left${fit?.basis === "saved" ? " for your size" : ""} (${formatMetres(fit?.availableMetres ?? 0)}), so they can't be chosen.`}
+                </Alert>
+              </div>
+            )}
             <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
               {templates.map((t) => {
                 const selected = t.id === selectedId;
                 const image = templateImage(t.slug);
                 const estimate = estimateOrderFrom(t, fabric);
+                const short = !fits(t.id);
+                const needs = fit?.fits[t.id]?.requiredMetres ?? null;
                 return (
                   <li key={t.id}>
                     <button
                       type="button"
                       aria-pressed={selected}
+                      disabled={short}
                       onClick={() => setPicked(t.id)}
-                      className={`${optionCardClasses(selected)} h-full`}
+                      className={`${optionCardClasses(selected)} h-full disabled:cursor-not-allowed disabled:opacity-55`}
                     >
                       {selected && <SelectedBadge />}
                       <span className="relative flex aspect-square w-full items-center justify-center bg-cream">
@@ -98,16 +124,23 @@ function Library({ ctx }: { ctx: OrderContext }) {
                       <span className="flex flex-1 flex-col px-3 py-3 text-center">
                         <span className="block text-sm font-bold text-ink sm:text-base">{t.name}</span>
                         {t.description && <span className="mt-0.5 line-clamp-2 block text-xs text-muted">{t.description}</span>}
-                        <span className="mt-1.5 block text-xs font-semibold text-ocean">
-                          {estimate ? `From ${formatPKR(estimate.total)}` : `Stitching ${formatPKR(t.base_stitch_price)}`}
-                          {` · ${DELIVERY_DAYS} days`}
-                        </span>
+                        {short ? (
+                          <span className="mt-1.5 block text-xs font-semibold text-danger">
+                            Not enough fabric{needs !== null ? ` · needs ${formatMetres(Math.ceil(needs * 10) / 10)}` : ""}
+                          </span>
+                        ) : (
+                          <span className="mt-1.5 block text-xs font-semibold text-ocean">
+                            {estimate ? `From ${formatPKR(estimate.total)}` : `Stitching ${formatPKR(t.base_stitch_price)}`}
+                            {` · ${DELIVERY_DAYS} days`}
+                          </span>
+                        )}
                       </span>
                     </button>
                   </li>
                 );
               })}
             </ul>
+            </>
           )}
         </section>
       </main>

@@ -1,17 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import type { CorrectionEffect } from "@multife/backend/modules/production/measurementCorrections";
 import type { MeasurementField } from "@multife/backend/modules/rules/validateMeasurements";
 import { validateMeasurements } from "@multife/backend/modules/rules/validateMeasurements";
 import {
   advanceStageAction,
   approveJobMeasurementsAction,
+  previewJobCorrectionAction,
   recordFabricReceivedAction,
 } from "@/app/(production)/production-actions";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { TextField, inputClasses } from "@/components/ui/text-field";
+import { formatMetres } from "@/lib/catalog";
 import type { JobSheet } from "@/lib/production-jobs";
 import { changedMeasurements, maxMeasurementChange, sameMeasurements, type NextStep, type ProductionStage } from "@/lib/production-stage";
 
@@ -46,6 +49,13 @@ export function JobActions({
         Your corrections were sent to the customer on{" "}
         {new Date(correction.createdAt).toLocaleDateString("en-PK", { day: "numeric", month: "short" })}. Cutting waits until they
         accept. They&apos;re emailed and see it on their order page.
+        {correction.yardageBefore !== null && correction.yardageAfter !== null && (
+          <>
+            {" "}
+            The fabric needed changes from {formatMetres(correction.yardageBefore)} to {formatMetres(correction.yardageAfter)}; if they
+            accept, the order is updated to match.
+          </>
+        )}
       </div>
     );
   }
@@ -214,8 +224,38 @@ function ApproveMeasurements({
     Object.entries(values).filter(([, v]) => v.trim() !== "" && !Number.isNaN(Number(v))).map(([k, v]) => [k, Number(v)]),
   );
   const changed = changedMeasurements(confirmed, numeric);
-  // FR-AI-16: beyond the threshold the customer has to accept first.
-  const needsCustomer = maxMeasurementChange(confirmed, numeric) > threshold && !(accepted && sameMeasurements(accepted, numeric));
+  const complete = fields.every((f) => typeof numeric[f.key] === "number");
+  const valuesKey = JSON.stringify(numeric);
+
+  // FR-AI-17: ask the server whether these values change the fabric needed
+  // (and so the price) — a short pause after typing, only for a full set
+  // that differs from what the customer confirmed or accepted.
+  const [effect, setEffect] = useState<{ key: string; data: CorrectionEffect } | null>(null);
+  const reference = accepted ?? confirmed;
+  const differs = complete && !sameMeasurements(reference, numeric);
+  useEffect(() => {
+    if (!differs) return;
+    let cancelled = false;
+    const values = JSON.parse(valuesKey) as Record<string, number>;
+    const timer = setTimeout(() => {
+      previewJobCorrectionAction({ jobId, values })
+        .then((result) => {
+          if (!cancelled && result.ok) setEffect({ key: valuesKey, data: result.data });
+        })
+        .catch(() => {});
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [jobId, valuesKey, differs]);
+  const current = differs && effect?.key === valuesKey ? effect.data : null;
+  const fabricChange = current?.changesFabric && current.needsCustomer ? current : null;
+
+  // FR-AI-16: beyond the threshold the customer has to accept first; FR-AI-17:
+  // so does a change to the fabric needed. The server re-decides on submit.
+  const bigChange = maxMeasurementChange(confirmed, numeric) > threshold && !(accepted && sameMeasurements(accepted, numeric));
+  const needsCustomer = bigChange || fabricChange !== null;
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -272,12 +312,22 @@ function ApproveMeasurements({
             </Alert>
           </div>
         )}
-        {needsCustomer && (
+        {fabricChange && fabricChange.yardageBefore !== null && fabricChange.yardageAfter !== null ? (
           <div className="mt-4">
             <Alert tone="info">
-              A change of more than {threshold} cm goes to the customer to accept before cutting. They&apos;re emailed and the order waits.
+              These measurements need {formatMetres(fabricChange.yardageAfter)} of fabric instead of{" "}
+              {formatMetres(fabricChange.yardageBefore)}, so the customer has to accept the change (and any new price) before cutting.
+              They&apos;re emailed and the order waits.
             </Alert>
           </div>
+        ) : (
+          bigChange && (
+            <div className="mt-4">
+              <Alert tone="info">
+                A change of more than {threshold} cm goes to the customer to accept before cutting. They&apos;re emailed and the order waits.
+              </Alert>
+            </div>
+          )
         )}
 
         {changed.length > 0 && (

@@ -6,7 +6,7 @@ import { OrderTopBar } from "@/components/order/order-top-bar";
 import { PageTitle } from "@/components/order/page-title";
 import { estimateOrderFrom, fabricName, fabricProperties, formatMetres, formatPKR } from "@/lib/catalog";
 import { getActiveBrandBySlug } from "@/lib/suppliers";
-import { getFabricAction, getFabricStockAction, listCompatibleTemplatesForFabricAction } from "@/app/(storefront)/catalog-actions";
+import { getFabricAction, getFabricStockAction, getTemplateFitAction, listCompatibleTemplatesForFabricAction } from "@/app/(storefront)/catalog-actions";
 import { ContinueToTemplates } from "./continue-to-templates";
 
 type Params = { slug: string; fabricId: string };
@@ -42,7 +42,14 @@ export default async function FabricDetailPage({ params }: { params: Promise<Par
 
   const confirmed = isFabricPublishable(fabric);
   const templatesResult = confirmed ? await listCompatibleTemplatesForFabricAction({ fabricId: fabric.id }) : null;
-  const templates = templatesResult?.ok ? templatesResult.data.filter((t) => t.is_published) : [];
+  const compatible = templatesResult?.ok ? templatesResult.data.filter((t) => t.is_published) : [];
+  // FR-FAB-17: only outfits there's enough of this fabric left for (in the
+  // customer's saved size, else the standard size). If the check fails,
+  // nothing is hidden: the fabric hold at checkout re-checks.
+  const fitResult = compatible.length > 0 && !soldOut ? await getTemplateFitAction({ fabricId: fabric.id }) : null;
+  const fit = fitResult?.ok ? fitResult.data : null;
+  const templates = compatible.filter((t) => fit?.fits[t.id]?.enough !== false);
+  const tooShort = compatible.length > 0 && templates.length === 0;
 
   const stitchingFrom = templates.length > 0 ? Math.min(...templates.map((t) => t.base_stitch_price)) : null;
   const estimates = templates.map((t) => estimateOrderFrom(t, fabric)).filter((e) => e !== null);
@@ -62,9 +69,11 @@ export default async function FabricDetailPage({ params }: { params: Promise<Par
     ? "Customizations for this fabric are being confirmed with the store. Please check back soon."
     : templatesResult && !templatesResult.ok
       ? "We couldn't load the outfit templates. Please refresh to try again."
-      : templates.length === 0
-        ? "No outfit templates can be made in this fabric yet."
-        : null;
+      : tooShort
+        ? `There isn't enough of this fabric left for any of our outfits${fit?.basis === "saved" ? " in your size" : ""}. Please choose another fabric.`
+        : templates.length === 0
+          ? "No outfit templates can be made in this fabric yet."
+          : null;
 
   return (
     <div className="flex min-h-full flex-1 flex-col">

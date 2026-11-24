@@ -23,6 +23,14 @@ describe("account deletion entries", () => {
   });
 });
 
+describe("price change entries", () => {
+  it("names it and shows the old and new total", () => {
+    expect(auditActionLabel("order.price_changed")).toBe("Order price changed after a measurement correction");
+    const summary = auditSummary({ yardage_metres: 7.645, total: 15594.3 }, { yardage_metres: 7.7, total: 15668, correction_id: "c1" });
+    expect(summary).toBe("PKR " + (15594.3).toLocaleString("en-PK") + " → PKR " + (15668).toLocaleString("en-PK"));
+  });
+});
+
 describe("auditArea", () => {
   it("falls back to everything", () => {
     expect(auditArea("orders").prefix).toBe("order.");

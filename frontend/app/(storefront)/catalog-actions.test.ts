@@ -18,6 +18,7 @@ vi.mock("@/lib/suppliers", () => ({ getActiveBrandBySlug: vi.fn() }));
 vi.mock("@multife/backend/modules/users/getActor", () => ({ getCurrentProfile: vi.fn() }));
 vi.mock("@multife/backend/modules/agents/getCurrentAgent", () => ({ getCurrentAgent: vi.fn() }));
 vi.mock("@multife/backend/modules/agents/getMyCustomer", () => ({ getMyCustomer: vi.fn() }));
+vi.mock("@multife/backend/modules/measurements/getMeasurementProfile", () => ({ getLatestConfirmedProfile: vi.fn() }));
 
 import { createClient } from "@/lib/supabase/server";
 import { listFabrics } from "@multife/backend/modules/catalog/listFabrics";
@@ -31,11 +32,13 @@ import { getActiveBrandBySlug } from "@/lib/suppliers";
 import { getCurrentProfile } from "@multife/backend/modules/users/getActor";
 import { getCurrentAgent } from "@multife/backend/modules/agents/getCurrentAgent";
 import { getMyCustomer } from "@multife/backend/modules/agents/getMyCustomer";
+import { getLatestConfirmedProfile } from "@multife/backend/modules/measurements/getMeasurementProfile";
 import {
   getFabricAction,
   getFabricStockAction,
   getOrderContextAction,
   getTemplateAction,
+  getTemplateFitAction,
   getTemplateOptionsForFabricAction,
   listCompatibleTemplatesForFabricAction,
   listFabricsAction,
@@ -352,5 +355,55 @@ describe("getFabricStockAction", () => {
       data: { [id]: { stockMetres: 40, reservedMetres: 6.5, availableMetres: 33.5 } },
     });
     expect(getFabricStock).toHaveBeenCalledWith(fakeSupabase, [id]);
+  });
+});
+
+describe("getTemplateFitAction", () => {
+  const fabricId = "11111111-1111-4111-8111-111111111111";
+  const fabric = { id: fabricId, is_available: true, is_hidden: false, stock_metres: 40, properties: {} };
+  const formula = { base_metres: 4.5, coefficients: { chest: 0.015 }, wastage_margin: 0.1 };
+  const required_measurements = [{ key: "chest", label: "Chest", unit: "cm", min: 60, max: 160 }];
+  const small = { id: "t-small", is_published: true, yardage_formula: { ...formula, base_metres: 1 }, required_measurements };
+  const big = { id: "t-big", is_published: true, yardage_formula: formula, required_measurements };
+  const draft = { id: "t-draft", is_published: false, yardage_formula: formula, required_measurements };
+
+  beforeEach(() => {
+    vi.mocked(getFabric).mockResolvedValue(fabric as never);
+    vi.mocked(listTemplates).mockResolvedValue([small, big, draft] as never);
+    vi.mocked(getFabricStock).mockResolvedValue(new Map([[fabricId, { stockMetres: 40, reservedMetres: 35, availableMetres: 5 }]]));
+    vi.mocked(getCurrentProfile).mockResolvedValue(null);
+    vi.mocked(getLatestConfirmedProfile).mockReset();
+  });
+
+  it("marks published templates that need more fabric than is left, at the standard size for guests", async () => {
+    const result = await getTemplateFitAction({ fabricId });
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        availableMetres: 5,
+        basis: "standard",
+        fits: {
+          "t-small": { requiredMetres: 2.915, enough: true },
+          "t-big": { requiredMetres: 6.765, enough: false },
+        },
+      },
+    });
+    expect(getLatestConfirmedProfile).not.toHaveBeenCalled();
+  });
+
+  it("sizes a signed-in customer from their saved measurements", async () => {
+    vi.mocked(getCurrentProfile).mockResolvedValue({ id: "c1", role: "customer", status: "active" } as never);
+    vi.mocked(getLatestConfirmedProfile).mockResolvedValue({ measurement_values: { chest: 60 } } as never);
+    vi.mocked(getFabricStock).mockResolvedValue(new Map([[fabricId, { stockMetres: 40, reservedMetres: 34, availableMetres: 6 }]]));
+    const result = await getTemplateFitAction({ fabricId });
+    // (4.5 + 0.015 × 60) × 1.1 = 5.94, within the 6 m left
+    expect(result).toMatchObject({ ok: true, data: { basis: "saved", fits: { "t-big": { requiredMetres: 5.94, enough: true } } } });
+    expect(getLatestConfirmedProfile).toHaveBeenCalledWith(fakeSupabase, "c1");
+  });
+
+  it("refuses a bad id and a fabric that isn't on sale", async () => {
+    expect(await getTemplateFitAction({ fabricId: "nope" })).toEqual({ ok: false, error: "Invalid input." });
+    vi.mocked(getFabric).mockResolvedValue({ ...fabric, is_hidden: true } as never);
+    expect(await getTemplateFitAction({ fabricId })).toEqual({ ok: false, error: "Fabric not found." });
   });
 });
